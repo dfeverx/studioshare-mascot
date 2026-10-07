@@ -167,6 +167,8 @@ private val easeIn = CubicBezierEasing(0.42f, 0f, 1f, 1f)
 private const val COLLAPSE_AFTER_LEAVE_MS = 15_000L
 /** How long compact stays after the mouse leaves before it hides back into the notch. */
 private const val HIDE_AFTER_LEAVE_MS = 60_000L
+/** With no card up and the mouse away this long, the island goes entirely, until something happens. */
+internal const val SLEEP_AFTER_MS = 10_000L
 /** A new task opens with its progress this long, then folds back to a ring in compact. */
 private const val TASK_PEEK_MS = 3_500L
 /** Resting the mouse on the face this long makes it blush; then not again for a while. */
@@ -315,6 +317,17 @@ internal fun liveCard(agent: MascotAgent?, state: MascotAgentState, opened: Bool
             } else null
     }
 
+/**
+ * What is happening, as a key that changes only when something new does: an alert, a warning, a task
+ * starting. Null when nothing is, or for a quiet alert (it only changes the face). Wakes a sleeping island.
+ */
+internal fun actionKey(state: MascotAgentState): String? = when (state) {
+    is MascotAgentState.Alert -> if (state.alert.quiet) null else "alert:${state.alert.id}"
+    is MascotAgentState.Warning -> "warning:${state.activeWarning.id}"
+    is MascotAgentState.Working -> "task:${state.activeTask.id}"
+    is MascotAgentState.Idle -> null
+}
+
 /** The sound for the island turning [from] one look [to] another while showing [card]; null for none. */
 internal fun soundFor(from: Look, to: Look, card: NotchCard?): NotchSound? = when {
     to == Look.Open && from != Look.Open -> when {
@@ -340,7 +353,8 @@ internal fun soundFor(from: Look, to: Look, card: NotchCard?): NotchSound? = whe
  * watching the cursor and a progress ring or an amber pulse on its right — and clicking opens it: 640 wide, a header row with
  * the mute toggle, and one card washed with the mood's colour. Alerts and warnings open it on their
  * own, each with its own sound; it folds back to compact 15 s after the mouse leaves, and hides 60 s
- * after that.
+ * after that. With no card up, the mouse away and no warning waiting, it goes entirely after 10 s —
+ * nothing drawn, every click passing through — until a new alert, warning or task brings it back.
  *
  * It reads [MascotAgent.state] and nothing else: [MascotAgent.moment] for what happens in the app
  * (with the spec's default line, or your own), [MascotAgent.reportProgress] for tasks,
@@ -415,6 +429,22 @@ fun StudioFaceNotchCompanion(
         }
     }
 
+    // asleep: gone entirely, every click passing through, until something happens — a new alert,
+    // warning or task (progress on the same task doesn't count)
+    var asleep by remember { mutableStateOf(false) }
+    val action = actionKey(state)
+    LaunchedEffect(action) {
+        if (action != null) asleep = false
+    }
+    LaunchedEffect(asleep, shown, inIsland, state is MascotAgentState.Warning) {
+        if (asleep || shown != null || inIsland || state is MascotAgentState.Warning) return@LaunchedEffect
+        delay(SLEEP_AFTER_MS)
+        asleep = true
+        opened = false
+        peeking = false
+    }
+    val presence by animateFloatAsState(if (asleep) 0f else 1f, tween(if (asleep) 400 else 200))
+
     val look = lookOf(shown, state, peeking)
     var lastLook by remember { mutableStateOf(Look.Hidden) }
     LaunchedEffect(look) {
@@ -449,7 +479,15 @@ fun StudioFaceNotchCompanion(
             var clickable = false
             while (true) {
                 val m = runCatching { MouseInfo.getPointerInfo()?.location }.getOrNull()
-                if (m != null) {
+                if (asleep) {
+                    // nothing there to hover or click
+                    if (inIsland) inIsland = false
+                    if (overFace) overFace = false
+                    if (clickable) {
+                        clickable = false
+                        MacNotch.setClickThrough(NOTCH_WINDOW_TITLE, true)
+                    }
+                } else if (m != null) {
                     val x = m.x - window.x.toFloat()
                     val y = m.y - window.y.toFloat()
                     val left = (stage.width.value - metrics.width) / 2
@@ -469,8 +507,8 @@ fun StudioFaceNotchCompanion(
 
         val faceScale by animateFloatAsState(if (overFace) 1.08f else 1f, spring(0.6f, Spring.StiffnessMedium))
         CompositionLocalProvider(LocalNotchWindow provides window, LocalNotchSounds provides sounds) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-                Island(
+            Box(Modifier.fillMaxSize().graphicsLayer { alpha = presence }, contentAlignment = Alignment.TopCenter) {
+                if (presence > 0f) Island(
                     state = state,
                     card = shown,
                     look = look,

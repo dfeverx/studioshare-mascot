@@ -116,6 +116,10 @@ The card is washed with the mood's colour and the face slides in from its row. T
 Dynamic Island's: a soft spring open, a firmer one closed, and content fading in out of a slight
 blur. Hovering keeps whatever is showing, and clicking the resting island opens it.
 
+So it never sits in the way, the island goes entirely after 10 s with no card up, the mouse away and
+no warning waiting: nothing is drawn and every click passes through. A new alert, warning or task
+brings it back. Progress on a running task and quiet moments don't.
+
 Clicking the island while nothing is going on opens a one-line "All quiet" card, and the face in it
 waves.
 

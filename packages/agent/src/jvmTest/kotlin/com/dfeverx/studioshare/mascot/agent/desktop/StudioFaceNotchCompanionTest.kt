@@ -55,6 +55,16 @@ class StudioFaceNotchCompanionTest {
         AgentAlert("c", "All photos uploaded!", "", mood = "celebrating", label = "Upload", hands = HandGesture.Cheer),
     )
 
+    @Test fun onlySomethingNewWakesASleepingIsland() {
+        assertNull(actionKey(MascotAgentState.Idle()))
+        assertNull(actionKey(MascotAgentState.Alert(AgentAlert("q", "", "", mood = "glance", quiet = true))))
+        assertEquals("alert:a", actionKey(signedIn))
+        assertEquals("warning:w", actionKey(warning))
+        // progress on the same task is not news
+        val later = MascotAgentState.Working(upload.activeTask.copy(progress = 0.9f))
+        assertEquals(actionKey(upload), actionKey(later))
+    }
+
     @Test fun restingIslandSaysNothing() {
         assertNull(liveCard(null, MascotAgentState.Idle(), opened = false, peeks = false))
         assertNull(liveCard(null, upload, opened = false, peeks = false))
