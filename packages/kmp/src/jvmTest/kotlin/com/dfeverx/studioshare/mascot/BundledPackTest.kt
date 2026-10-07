@@ -34,6 +34,7 @@ class BundledPackTest {
             val file = File(dir, path)
             assertTrue(file.exists(), "missing $path")
             assertTrue(Sha256.hex(file.readBytes()) == sha, "hash mismatch for $path")
+            assertNotNull(com.dfeverx.studioshare.mascot.render.decodeImage(file.readBytes()), "failed to decode $path")
         }
     }
 }

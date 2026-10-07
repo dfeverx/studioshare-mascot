@@ -232,6 +232,17 @@
         if (!res.ok) throw new Error('Not found');
         pack = await res.json();
         packInfo.innerHTML = `<strong>Version:</strong> v${pack.version}<br/><strong>Hash:</strong> ${pack.hash}<br/><strong>Moods:</strong> ${Object.keys(pack.moods).length}`;
+        if (pack.moods) {
+          chipsContainer.innerHTML = '';
+          const allMoods = Object.keys(pack.moods).sort();
+          allMoods.forEach(m => {
+            const chip = document.createElement('div');
+            chip.className = `chip ${m === currentMood ? 'active' : ''}`;
+            chip.textContent = m;
+            chip.onclick = () => selectMood(m);
+            chipsContainer.appendChild(chip);
+          });
+        }
         playMood(currentMood);
       } catch (e) {
         packInfo.innerHTML = 'Pack not loaded. Build it with <code>npm run pack</code>.';
@@ -266,7 +277,15 @@
           ctx.save();
           ctx.translate(canvas.width / 2, canvas.height);
           ctx.scale(1 - s * 0.4, 1 + s);
-          ctx.drawImage(img, (i % cols) * w, Math.floor(i / cols) * h, w, h, -canvas.width / 2, -canvas.height, canvas.width, canvas.height);
+          const targetAspect = w / h;
+          const containerAspect = canvas.width / canvas.height;
+          let drawW = canvas.width, drawH = canvas.height;
+          if (containerAspect > targetAspect) {
+            drawW = canvas.height * targetAspect;
+          } else {
+            drawH = canvas.width / targetAspect;
+          }
+          ctx.drawImage(img, (i % cols) * w, Math.floor(i / cols) * h, w, h, -drawW / 2, -drawH, drawW, drawH);
           ctx.restore();
           animId = requestAnimationFrame(render);
         }

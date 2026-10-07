@@ -36,6 +36,7 @@ fun MascotFigure(
     mirrored: Boolean,
     animate: Boolean,
     modifier: Modifier = Modifier,
+    fidgetOnly: Boolean = false,
     onFinished: (() -> Unit)? = null,
 ) {
     val mood = resolved.mood
@@ -53,7 +54,7 @@ fun MascotFigure(
     val blink = remember { mutableFloatStateOf(0f) }
     val finished = rememberUpdatedState(onFinished)
 
-    LaunchedEffect(resolved.momentKey, resolved.moodName, oneShot, walking, animate) {
+    LaunchedEffect(resolved.momentKey, resolved.moodName, oneShot, walking, animate, fidgetOnly) {
         time.floatValue = 0f
         blink.floatValue = 0f
         if (!animate) {
@@ -73,7 +74,15 @@ fun MascotFigure(
             }
         }
         when {
-            walking -> while (true) burst(10f, withBlink = false)
+            walking || (!oneShot && !fidgetOnly) -> {
+                var t = 0f
+                while (true) {
+                    delay(FRAME_MS)
+                    t += FRAME_MS / 1000f
+                    time.floatValue = t
+                    blink.floatValue = blinkAt(t)
+                }
+            }
             oneShot -> {
                 burst(MascotMotion.ONE_SHOT_SECONDS, withBlink = false)
                 time.floatValue = 0f

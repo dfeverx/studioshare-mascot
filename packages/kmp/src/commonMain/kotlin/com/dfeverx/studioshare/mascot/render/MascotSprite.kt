@@ -45,6 +45,7 @@ fun MascotSprite(
     modifier: Modifier = Modifier,
     walking: Boolean = false,
     mirrored: Boolean = false,
+    fidgetOnly: Boolean = false,
     onFinished: (() -> Unit)? = null,
 ) {
     val path = resolved.atlasPath(dark)
@@ -63,7 +64,7 @@ fun MascotSprite(
     val finished by rememberUpdatedState(onFinished)
     // time < 0 = at rest: the still frame, no motion
     var time by remember(resolved.momentKey, resolved.moodName) { mutableFloatStateOf(REST) }
-    LaunchedEffect(resolved.momentKey, resolved.moodName, animate, loop, walking) {
+    LaunchedEffect(resolved.momentKey, resolved.moodName, animate, loop, walking, fidgetOnly) {
         time = REST
         if (!animate) {
             if (!loop && !walking) {
@@ -72,25 +73,39 @@ fun MascotSprite(
             }
             return@LaunchedEffect
         }
-        suspend fun burst(seconds: Float) {
-            var t = 0f
-            while (t < seconds) {
-                time = t
-                delay(FRAME_MS)
-                t += FRAME_MS / 1000f
-            }
-        }
         when {
-            walking -> while (true) burst(10f)
+            walking || (loop && !fidgetOnly) -> {
+                var t = 0f
+                while (true) {
+                    time = t
+                    delay(FRAME_MS)
+                    t += FRAME_MS / 1000f
+                }
+            }
             !loop -> {
-                burst(MascotMotion.ONE_SHOT_SECONDS)
+                val duration = if (art != null && art.frames > 1) {
+                    (art.frames.toFloat() / art.fps.coerceAtLeast(1))
+                } else {
+                    MascotMotion.ONE_SHOT_SECONDS
+                }
+                var t = 0f
+                while (t < duration) {
+                    time = t
+                    delay(FRAME_MS)
+                    t += FRAME_MS / 1000f
+                }
                 time = REST
                 finished?.invoke()
             }
             else -> while (true) {
                 time = REST
                 delay(Random.nextLong(6_000, 10_000))
-                burst(FIDGET_SECONDS)
+                var t = 0f
+                while (t < FIDGET_SECONDS) {
+                    time = t
+                    delay(FRAME_MS)
+                    t += FRAME_MS / 1000f
+                }
             }
         }
     }
@@ -126,11 +141,21 @@ fun MascotSprite(
             transformOrigin = TransformOrigin(0.5f, 1f)
         },
     ) {
+        val targetAspect = frameW.toFloat() / frameH.toFloat()
+        val containerAspect = size.width / size.height
+        val (drawW, drawH) = if (containerAspect > targetAspect) {
+            (size.height * targetAspect) to size.height
+        } else {
+            size.width to (size.width / targetAspect)
+        }
+        val left = (size.width - drawW) / 2f
+        val top = size.height - drawH
         drawImage(
             image = image,
             srcOffset = IntOffset((frameIndex % cols) * frameW, (frameIndex / cols) * frameH),
             srcSize = IntSize(frameW, frameH),
-            dstSize = IntSize(size.width.toInt(), size.height.toInt()),
+            dstOffset = IntOffset(left.toInt(), top.toInt()),
+            dstSize = IntSize(drawW.toInt(), drawH.toInt()),
             filterQuality = FilterQuality.Medium,
         )
     }

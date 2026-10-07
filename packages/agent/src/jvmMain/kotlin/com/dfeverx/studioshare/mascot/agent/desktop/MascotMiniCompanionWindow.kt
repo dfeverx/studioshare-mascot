@@ -40,6 +40,11 @@ import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.rememberWindowState
 import com.dfeverx.studioshare.mascot.agent.MascotAgent
 import com.dfeverx.studioshare.mascot.agent.MascotAgentState
+import com.dfeverx.studioshare.mascot.pack.LoadedPack
+import com.dfeverx.studioshare.mascot.pack.MascotPack
+import com.dfeverx.studioshare.mascot.render.AtlasCache
+import com.dfeverx.studioshare.mascot.render.MascotSprite
+import com.dfeverx.studioshare.mascot.rig.MascotFigure
 import com.dfeverx.studioshare.mascot.rig.RigColors
 import com.dfeverx.studioshare.mascot.rig.RigPose
 import com.dfeverx.studioshare.mascot.rig.drawMascot
@@ -54,7 +59,9 @@ fun MascotMiniCompanionWindow(
     agent: MascotAgent,
     visible: Boolean,
     onClose: () -> Unit,
-    onOpenMainApp: () -> Unit
+    onOpenMainApp: () -> Unit,
+    loadedPack: LoadedPack? = null,
+    cache: AtlasCache? = null
 ) {
     if (!visible) return
 
@@ -95,14 +102,55 @@ fun MascotMiniCompanionWindow(
                         .background(Color(0xFF141418)),
                     contentAlignment = Alignment.Center
                 ) {
-                    androidx.compose.foundation.Canvas(modifier = Modifier.size(70.dp)) {
-                        val pose = when (state) {
-                            is MascotAgentState.Working -> RigPose(face = "focused", arms = "carry", prop = "box")
-                            is MascotAgentState.Warning -> RigPose(face = "worried", arms = "shrug", prop = "exclaim")
-                            is MascotAgentState.Alert -> RigPose(face = "happy", arms = "cheer", prop = "sparks")
-                            is MascotAgentState.Idle -> RigPose(face = "smile", arms = "down", prop = "none")
-                        }
-                        drawMascot(pose = pose, colors = RigColors.Light, t = 0.5f)
+                    val moodName = state.currentMood
+                    val resolvedMood = loadedPack?.pack?.resolveMood(moodName)
+                    if (loadedPack != null && cache != null && resolvedMood?.art != null) {
+                        MascotSprite(
+                            resolved = resolvedMood,
+                            loaded = loadedPack,
+                            dark = true,
+                            cache = cache,
+                            loop = true,
+                            animate = true,
+                            modifier = Modifier.size(72.dp)
+                        )
+                    } else {
+                        val fallbackResolved = MascotPack.Resolved(
+                            momentKey = null,
+                            moodName = moodName,
+                            mood = MascotPack.Mood(
+                                face = when (state) {
+                                    is MascotAgentState.Working -> "focused"
+                                    is MascotAgentState.Warning -> "worried"
+                                    is MascotAgentState.Alert -> "happy"
+                                    is MascotAgentState.Idle -> "smile"
+                                },
+                                arms = when (state) {
+                                    is MascotAgentState.Working -> "carry"
+                                    is MascotAgentState.Warning -> "shrug"
+                                    is MascotAgentState.Alert -> "cheer"
+                                    is MascotAgentState.Idle -> "down"
+                                },
+                                prop = when (state) {
+                                    is MascotAgentState.Working -> "box"
+                                    is MascotAgentState.Warning -> "exclaim"
+                                    is MascotAgentState.Alert -> "sparks"
+                                    is MascotAgentState.Idle -> "none"
+                                }
+                            ),
+                            artName = moodName,
+                            art = null,
+                            first = null
+                        )
+                        MascotFigure(
+                            resolved = fallbackResolved,
+                            colors = RigColors.Light,
+                            oneShot = false,
+                            walking = false,
+                            mirrored = false,
+                            animate = true,
+                            modifier = Modifier.size(70.dp)
+                        )
                     }
                 }
 

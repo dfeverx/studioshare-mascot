@@ -88,8 +88,15 @@ export function MascotSprite({
       const s = reduced ? 0 : 0.025 * (0.5 + 0.5 * Math.sin((t * 2 * Math.PI) / 3.2));
       ctx.save();
       ctx.translate(el.width / 2, el.height);
-      ctx.scale(1 - s * 0.4, 1 + s);
-      ctx.drawImage(img, (i % cols) * w, Math.floor(i / cols) * h, w, h, -el.width / 2, -el.height, el.width, el.height);
+      const targetAspect = w / h;
+      const containerAspect = el.width / el.height;
+      let drawW = el.width, drawH = el.height;
+      if (containerAspect > targetAspect) {
+        drawW = el.height * targetAspect;
+      } else {
+        drawH = el.width / targetAspect;
+      }
+      ctx.drawImage(img, (i % cols) * w, Math.floor(i / cols) * h, w, h, -drawW / 2, -drawH, drawW, drawH);
       ctx.restore();
       if (!reduced) raf = requestAnimationFrame(draw);
     };
