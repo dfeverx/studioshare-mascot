@@ -80,6 +80,7 @@ import androidx.compose.ui.window.rememberWindowState
 import com.dfeverx.studioshare.mascot.agent.AgentTask
 import com.dfeverx.studioshare.mascot.agent.MascotAgent
 import com.dfeverx.studioshare.mascot.agent.MascotAgentState
+import com.dfeverx.studioshare.mascot.face.HandGesture
 import com.dfeverx.studioshare.mascot.face.StudioFace
 import com.dfeverx.studioshare.mascot.face.gazeToward
 import kotlinx.coroutines.delay
@@ -213,6 +214,8 @@ internal class CardButton(val label: String, val primary: Boolean, val onClick: 
 internal sealed interface NotchCard {
     val mood: String
     val key: String
+    /** What the face does with its hands while this shows; null keeps them away. */
+    val hands: HandGesture? get() = null
 
     /** A message: who it's from, what happened, maybe a line more and a button or two. */
     data class Message(
@@ -225,6 +228,7 @@ internal sealed interface NotchCard {
         val buttons: List<CardButton> = emptyList(),
         /** Small and dim after the label, e.g. "1 of 3". */
         val counter: String? = null,
+        override val hands: HandGesture? = null,
     ) : NotchCard {
         /** Just a line: no detail, no buttons. */
         val isNote get() = detail == null && buttons.isEmpty()
@@ -256,7 +260,7 @@ internal fun lookOf(card: NotchCard?, state: MascotAgentState, peeking: Boolean)
 /**
  * What the island should be showing for [state], or null to stay shut. A warning or alert speaks
  * for itself; a task shows its progress while it [peeks] (just started), and when [opened] by a
- * click; a click on a quiet island says so.
+ * click; a click on a quiet island says so, with a wave.
  */
 internal fun liveCard(agent: MascotAgent?, state: MascotAgentState, opened: Boolean, peeks: Boolean): NotchCard? =
     when (state) {
@@ -295,6 +299,7 @@ internal fun liveCard(agent: MascotAgent?, state: MascotAgentState, opened: Bool
                     CardButton(a.actionLabel, primary = true) { action(); agent?.dismissAlert(a.id) },
                     CardButton("OK", primary = false) { agent?.dismissAlert(a.id) },
                 ) else emptyList(),
+                hands = a.hands,
             )
         }
         is MascotAgentState.Working ->
@@ -302,8 +307,12 @@ internal fun liveCard(agent: MascotAgent?, state: MascotAgentState, opened: Bool
                 NotchCard.Progress("task:$opened", state.currentMood, state.activeTask, state.queuedTasks.size, expanded = opened)
             } else null
         is MascotAgentState.Idle ->
-            if (opened) NotchCard.Message("idle", "idle", "StudioShare", "All quiet. I'll tell you when something happens.")
-            else null
+            if (opened) {
+                NotchCard.Message(
+                    "idle", "idle", "StudioShare", "All quiet. I'll tell you when something happens.",
+                    hands = HandGesture.Wave,
+                )
+            } else null
     }
 
 /** The sound for the island turning [from] one look [to] another while showing [card]; null for none. */
@@ -467,6 +476,9 @@ fun StudioFaceNotchCompanion(
                     look = look,
                     notch = notch,
                     mood = if (love) "shy" else shown?.mood ?: state.currentMood,
+                    // a blush hides behind its hands; a card gestures if its moment does
+                    hands = if (love) HandGesture.Shy else shown?.hands,
+                    handsId = if (love) "love@$lastLove" else shown?.key,
                     faceScale = faceScale,
                     metrics = metrics,
                     muted = muted,
@@ -514,6 +526,8 @@ internal fun Island(
     notch: NotchGeometry,
     mood: String,
     animate: Boolean = true,
+    hands: HandGesture? = null,
+    handsId: Any? = null,
     faceScale: Float = 1f,
     metrics: IslandMetrics? = null,
     muted: Boolean = false,
@@ -613,9 +627,12 @@ internal fun Island(
                 .size(faceSize)
                 .graphicsLayer { scaleX = faceScale; scaleY = faceScale; alpha = faceAlpha },
         ) {
-            Face(state, mood, animate, onFaceClick)
-            // open, the card's label carries the tone; the badge is for compact, where there are no words
-            if (tone != Tone.Calm && look == Look.Compact) StatusBadge(tone, faceSize)
+            // hands once the face is in a card; in the band, only hands kept on the cheeks fit
+            val shownHands = hands.takeIf { look == Look.Open || it == HandGesture.Shy }
+            Face(state, mood, animate, shownHands, handsId, onFaceClick)
+            // open, the card's label carries the tone; the badge is for compact, where there are no words,
+            // and a gesturing face drops it: the hands would land on it
+            if (tone != Tone.Calm && look == Look.Compact && shownHands == null) StatusBadge(tone, faceSize)
         }
     }
 }
@@ -1026,7 +1043,14 @@ private fun StatusBadge(tone: Tone, face: Dp) {
 }
 
 @Composable
-private fun Face(state: MascotAgentState, mood: String, animate: Boolean, onClick: () -> Unit) {
+private fun Face(
+    state: MascotAgentState,
+    mood: String,
+    animate: Boolean,
+    hands: HandGesture?,
+    handsId: Any?,
+    onClick: () -> Unit,
+) {
     val progress = (state as? MascotAgentState.Working)?.activeTask
         ?.takeUnless { it.isIndeterminate }?.progress
     val window = LocalNotchWindow.current
@@ -1037,6 +1061,8 @@ private fun Face(state: MascotAgentState, mood: String, animate: Boolean, onClic
         mood = mood,
         progress = progress,
         animate = animate,
+        hands = hands,
+        handsId = handsId,
         gaze = window?.let { w -> { cursorGaze(w, centre[0] / density, centre[1] / density) } },
         modifier = Modifier
             .fillMaxSize()

@@ -2,7 +2,7 @@
 // packages/kmp/.../face/StudioFaceExpression.kt + StudioFaceDrawing.kt, so the web and the apps
 // show the same face for the same mood. No images: nothing to download.
 
-import { mascotMoodMotions } from './moments';
+import { mascotMoodMotions, type HandGesture } from './moments';
 
 export type EyeShape =
   | 'teardrop' | 'happy' | 'closed' | 'sleepy' | 'wide' | 'focused' | 'worried' | 'wink' | 'look' | 'scan';
@@ -527,6 +527,91 @@ function drawAccent(ctx: Ctx, a: Accent, ax: number, ay: number, s: number, t: n
   });
 }
 
+// ---- hands (port of StudioFaceHands.kt) -------------------------------------------------------
+
+/**
+ * Each gesture's life: how long it plays (hands out to hands in), the instant drawn when the face
+ * isn't animating, and whether the hands go over the face rather than behind it.
+ */
+export const handGestures: Record<HandGesture, { seconds: number; still: number; inFront?: boolean }> = {
+  wave: { seconds: 1.9, still: 0.62 },
+  cheer: { seconds: 1.8, still: 0.55 },
+  shrug: { seconds: 1.6, still: 0.5 },
+  tada: { seconds: 1.8, still: 0.75 },
+  shy: { seconds: 2.4, still: 0.8, inFront: true },
+};
+
+interface HandPose { x: number; y: number; rot: number }
+const restHand = (side: number): HandPose => ({ x: side * 0.54, y: 0.35, rot: 0 });
+const lerpHand = (a: HandPose, b: HandPose, f: number): HandPose =>
+  ({ x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f, rot: a.rot + (b.rot - a.rot) * f });
+/** 0 → 1 over `dur` seconds from `from`, easing out (cubic). */
+function rise(t: number, from: number, dur: number) {
+  const u = Math.min(Math.max((t - from) / dur, 0), 1);
+  return 1 - (1 - u) ** 3;
+}
+
+/** How far out the hands are at `t` seconds into `g`, 0..1. */
+export function handsOut(g: HandGesture, t: number): number {
+  const { seconds } = handGestures[g];
+  if (t < 0 || t > seconds) return 0;
+  const shrink = Math.min((seconds - t) / 0.22, 1);
+  return Math.min(rise(t, 0, 0.28), shrink * shrink * (3 - 2 * shrink));
+}
+
+/** Where hand `side` (−1 left, +1 right) is at `t` seconds into `g`: body sides from its centre, y down; rot in degrees. */
+function handPose(g: HandGesture, side: number, t: number): HandPose {
+  switch (g) {
+    case 'wave': {
+      if (side < 0) return { ...restHand(side), y: 0.35 + Math.sin(6 * t) * 0.04 };
+      const a = 13 * Math.max(t - 0.15, 0);
+      return lerpHand(restHand(side),
+        { x: 0.55 + Math.cos(a) * 0.06, y: -0.075 - Math.sin(a) * 0.14, rot: (-0.5 + Math.sin(a) * 0.35) * (180 / Math.PI) },
+        rise(t, 0.15, 0.18));
+    }
+    case 'cheer': {
+      const pump = Math.sin(16 * t + (side > 0 ? 0 : Math.PI)) * 0.07;
+      return lerpHand(restHand(side), { x: side * 0.58, y: -0.4 + pump, rot: -side * 28 }, rise(t, 0.08, 0.2));
+    }
+    case 'shrug': {
+      const lift = Math.sin(Math.min(Math.max((t - 0.25) / 0.5, 0), 1) * Math.PI) * 0.06;
+      return lerpHand(restHand(side), { x: side * 0.68, y: 0.08 - lift, rot: -side * 22 }, rise(t, 0.05, 0.2));
+    }
+    case 'tada': {
+      if (side < 0) return { ...restHand(side), y: 0.31 };
+      const w = Math.max(t - 0.1, 0);
+      const flourish = Math.sin(11 * w) * 0.07 * Math.exp(-3 * w);
+      return lerpHand(restHand(side), { x: 0.68, y: -0.04 + flourish, rot: -22 + flourish * 120 }, rise(t, 0.1, 0.25));
+    }
+    case 'shy':
+      return lerpHand(restHand(side), { x: side * 0.33, y: 0.07 + Math.sin(8 * t + side) * 0.012, rot: side * 20 }, rise(t, 0.05, 0.25));
+  }
+}
+
+/** Two soft, solid ovals in the eyes' warm gradient, lit from the top. */
+function drawHands(ctx: Ctx, s: number, g: HandGesture, t: number) {
+  const out = handsOut(g, t);
+  if (out < 0.01) return;
+  const w = 0.3 * s * out, h = 0.26 * s * out;
+  for (const side of [-1, 1]) {
+    const p = handPose(g, side, t);
+    ctx.save();
+    ctx.translate(p.x * s, p.y * s);
+    ctx.rotate(deg(p.rot));
+    const fill = ctx.createLinearGradient(w * 0.35, -h * 0.45, -w * 0.4, h * 0.45);
+    fill.addColorStop(0, P.eyeTop);
+    fill.addColorStop(1, P.eyeBottom);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, w / 2, h / 2, 0, 0, Math.PI * 2);
+    ctx.fillStyle = fill;
+    ctx.fill();
+    ctx.strokeStyle = P.body;
+    ctx.lineWidth = s * 0.012;
+    withAlpha(ctx, 0.55, () => ctx.stroke());
+    ctx.restore();
+  }
+}
+
 export interface DrawFaceOptions {
   params: FaceParams;
   motion: string;
@@ -542,6 +627,9 @@ export interface DrawFaceOptions {
   glow?: boolean;
   /** Where to look ([gazeToward] makes one); omitted, the eyes drift on their own. */
   gaze?: Gaze | null;
+  /** A gesture to make with the hands (it has none otherwise), `handsT` seconds into it. */
+  hands?: HandGesture | null;
+  handsT?: number;
 }
 
 /** Draws the face filling a `width × height` area at the canvas origin. */
@@ -555,6 +643,8 @@ export function drawStudioFace(ctx: Ctx, width: number, height: number, o: DrawF
   ctx.translate(0, s / 2);
   ctx.scale(pose.sx, pose.sy);
   ctx.translate(0, -s / 2);
+  // hands grow from behind the body, so they hop and lean with it
+  if (o.hands && !handGestures[o.hands].inFront) drawHands(ctx, s, o.hands, o.handsT ?? 0);
   drawBody(ctx, s, o.glow ?? true);
   // the face turns toward what it looks at: eyes and mouth slide across the body and narrow a
   // little, like features on a head turning — readable even at a small size
@@ -564,6 +654,7 @@ export function drawStudioFace(ctx: Ctx, width: number, height: number, o: DrawF
   drawEyes(ctx, s, o.params, o.t, o.gaze);
   drawMouth(ctx, s, o.params);
   ctx.restore();
+  if (o.hands && handGestures[o.hands].inFront) drawHands(ctx, s, o.hands, o.handsT ?? 0);
   const ax = s * 0.43, ay = -s * 0.45;
   if (o.previousAccent && (o.previousAlpha ?? 0) > 0.01) drawAccent(ctx, o.previousAccent, ax, ay, s, o.t, o.previousAlpha ?? 0, o.progress);
   if (o.accent) drawAccent(ctx, o.accent, ax, ay, s, o.t, o.accentAlpha ?? 1, o.progress);
@@ -593,6 +684,8 @@ export class StudioFacePlayer {
   private lookedAt = 0;
   private looking: Gaze | null = null;
   private stopFollowing?: () => void;
+  private hands: HandGesture | null = null;
+  private handsAt = 0;
   progress: number | null = null;
   /** Where to look, x and y each −1..1; null lets the eyes drift. The face eases toward it. */
   gaze: Gaze | null = null;
@@ -612,6 +705,16 @@ export class StudioFacePlayer {
     this.from = this.drawn;
     this.to = paramsOf(expressionFor(mood));
     this.changedAt = this.now();
+    if (!this.animate) this.render();
+  }
+
+  /**
+   * Makes a gesture with the hands, once from now; they tuck away when it ends. null puts them away.
+   * (A moment's gesture: `handsForMoment` in moments.ts.)
+   */
+  playHands(gesture: HandGesture | null) {
+    this.hands = gesture;
+    this.handsAt = this.now();
     if (!this.animate) this.render();
   }
 
@@ -693,6 +796,8 @@ export class StudioFacePlayer {
       previousAlpha: 1 - eased,
       progress: this.progress,
       gaze: this.looking,
+      hands: this.hands,
+      handsT: this.hands ? (this.animate ? t - this.handsAt : handGestures[this.hands].still) : 0,
     });
   }
 }

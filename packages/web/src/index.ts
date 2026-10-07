@@ -6,6 +6,7 @@ export {
   faceExpressions,
   studioFacePalette,
   gazeToward,
+  handGestures,
   type Gaze,
   type FaceExpression,
   type EyeShape,
@@ -17,6 +18,8 @@ export {
   mascotMomentMoods,
   mascotMoodMotions,
   moodForMoment,
+  handsForMoment,
+  type HandGesture,
   type MascotMoment,
   type MascotMomentDef,
 } from './moments';

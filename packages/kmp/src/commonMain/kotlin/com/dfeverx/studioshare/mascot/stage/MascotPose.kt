@@ -34,6 +34,7 @@ fun MascotPose(
     StudioFace(
         mood = MascotMomentMoods.moodFor(moment, firstAlreadySeen = true),
         animate = !reducedMotion,
+        hands = MascotMomentMoods.handsFor(moment, firstAlreadySeen = true),
         modifier = modifier.clearAndSetSemantics { },
     )
 }

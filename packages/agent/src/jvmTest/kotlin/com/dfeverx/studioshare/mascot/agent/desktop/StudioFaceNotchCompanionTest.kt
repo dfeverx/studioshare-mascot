@@ -21,6 +21,7 @@ import com.dfeverx.studioshare.mascot.agent.AgentTask
 import com.dfeverx.studioshare.mascot.agent.AgentWarning
 import com.dfeverx.studioshare.mascot.agent.MascotAgent
 import com.dfeverx.studioshare.mascot.agent.MascotAgentState
+import com.dfeverx.studioshare.mascot.face.HandGesture
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.skia.EncodedImageFormat
@@ -50,6 +51,10 @@ class StudioFaceNotchCompanionTest {
         AgentAlert("b", "New booking!", "Priya booked a portrait session for Sat 14 Nov.", mood = "celebrating", label = "Orbit"),
     )
 
+    private val celebrated = MascotAgentState.Alert(
+        AgentAlert("c", "All photos uploaded!", "", mood = "celebrating", label = "Upload", hands = HandGesture.Cheer),
+    )
+
     @Test fun restingIslandSaysNothing() {
         assertNull(liveCard(null, MascotAgentState.Idle(), opened = false, peeks = false))
         assertNull(liveCard(null, upload, opened = false, peeks = false))
@@ -67,7 +72,9 @@ class StudioFaceNotchCompanionTest {
         assertEquals(Tone.Warn, warn.detailTone)
         assertIs<NotchCard.Progress>(liveCard(null, upload, opened = false, peeks = true))
         assertIs<NotchCard.Progress>(liveCard(null, upload, opened = true, peeks = false))
-        assertIs<NotchCard.Message>(liveCard(null, MascotAgentState.Idle(), opened = true, peeks = false))
+        // a click on a quiet island says so, with a wave
+        val quiet = assertIs<NotchCard.Message>(liveCard(null, MascotAgentState.Idle(), opened = true, peeks = false))
+        assertEquals(HandGesture.Wave, quiet.hands)
     }
 
     @Test fun cardsOpenTheIslandAndWorkKeepsItCompact() {
@@ -116,6 +123,13 @@ class StudioFaceNotchCompanionTest {
 
         agent.moment(MascotMoments.AuthSignedIn, "Welcome back, Priya!")
         assertEquals("Welcome back, Priya!", assertIs<MascotAgentState.Alert>(agent.state.value).alert.title)
+
+        // the face gestures where the spec says it fits
+        assertEquals(HandGesture.Wave, said.hands)
+        agent.moment(MascotMoments.UploadDone)
+        assertEquals(HandGesture.Cheer, (liveCard(agent, agent.state.value, false, false) as NotchCard.Message).hands)
+        agent.moment(MascotMoments.UploadDone, firstAlreadySeen = true)
+        assertNull(assertIs<MascotAgentState.Alert>(agent.state.value).alert.hands)
 
         // a moment with nothing to say only changes the face
         agent.moment(MascotMoments.AppNavigated)
@@ -182,6 +196,8 @@ class StudioFaceNotchCompanionTest {
             Triple(booking, liveCard(agent, booking, false, false), notched),
             Triple(warning, liveCard(agent, warning, false, false), notched),
             Triple(upload, liveCard(agent, upload, opened = true, peeks = false), flat),
+            Triple(MascotAgentState.Idle(), liveCard(agent, MascotAgentState.Idle(), opened = true, peeks = false), notched),
+            Triple(celebrated, liveCard(agent, celebrated, false, false), notched),
         )
         val w = stageSize(notched).width.value.toInt()
         val rowH = 184
@@ -191,7 +207,7 @@ class StudioFaceNotchCompanionTest {
                 islands.forEach { (state, card, geometry) ->
                     Box(Modifier.size(w.dp, rowH.dp), contentAlignment = Alignment.TopCenter) {
                         val look = if (card == null && state is MascotAgentState.Idle) Look.Hidden else lookOf(card, state, peeking = true)
-                        Island(state, card, look, geometry, card?.mood ?: state.currentMood, animate = false)
+                        Island(state, card, look, geometry, card?.mood ?: state.currentMood, animate = false, hands = card?.hands)
                         // the hardware notch, to see what it hides
                         if (geometry.hasNotch) {
                             Box(Modifier.size(geometry.notchWidth, geometry.bandHeight).background(Color(0xFF3A1A1A).copy(alpha = 0.55f)))

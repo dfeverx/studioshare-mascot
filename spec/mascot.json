@@ -1,5 +1,5 @@
 {
-  "$comment": "StudioShare mascot moods and moments — the one file to edit. moods: the 30 moods the StudioShare face can show (its expression per mood lives in packages/kmp/.../face/StudioFaceExpression.kt and packages/web/src/face.ts; motion is a MascotMotion id). moments: what happens in the app, mapped to a mood (keys are code constants: append-only, never rename; hold = lasts while its state lasts; first = once-per-account celebration key; say = the notch companion's default line for a one-off moment, and only moments with one open the notch). areas: the label each moment's first segment shows in the notch card's header. Run `npm run moments` after editing.",
+  "$comment": "StudioShare mascot moods and moments — the one file to edit. moods: the 30 moods the StudioShare face can show (its expression per mood lives in packages/kmp/.../face/StudioFaceExpression.kt and packages/web/src/face.ts; motion is a MascotMotion id). moments: what happens in the app, mapped to a mood (keys are code constants: append-only, never rename; hold = lasts while its state lasts; first = once-per-account celebration key; say = the notch companion's default line for a one-off moment, and only moments with one open the notch; hands = a gesture the face makes with its hands — wave, cheer, tada, shrug or shy — kept for the few moments it really fits). areas: the label each moment's first segment shows in the notch card's header. Run `npm run moments` after editing.",
   "schema": 2,
   "moods": {
     "capturing": {
@@ -140,7 +140,8 @@
     },
     "app.longIdle": {
       "mood": "sleepy",
-      "say": "Still here when you need me."
+      "say": "Still here when you need me.",
+      "hands": "wave"
     },
     "app.navigated": {
       "mood": "glance"
@@ -149,11 +150,13 @@
       "mood": "idle"
     },
     "app.tapped": {
-      "mood": "happy"
+      "mood": "happy",
+      "hands": "wave"
     },
     "app.welcomeBack": {
       "mood": "happy",
-      "say": "Welcome back!"
+      "say": "Welcome back!",
+      "hands": "wave"
     },
     "attendees.addManual": {
       "mood": "waiting",
@@ -201,7 +204,8 @@
     },
     "attendees.matched": {
       "mood": "celebrating",
-      "say": "Attendees matched to their photos!"
+      "say": "Attendees matched to their photos!",
+      "hands": "cheer"
     },
     "attendees.matching": {
       "mood": "searching",
@@ -249,7 +253,8 @@
     },
     "auth.newUser": {
       "mood": "curious",
-      "say": "Welcome to StudioShare!"
+      "say": "Welcome to StudioShare!",
+      "hands": "wave"
     },
     "auth.otp": {
       "mood": "shy",
@@ -283,11 +288,13 @@
     },
     "auth.signOut": {
       "mood": "goodbye",
-      "say": "Signed out. See you soon."
+      "say": "Signed out. See you soon.",
+      "hands": "wave"
     },
     "auth.signedIn": {
       "mood": "happy",
-      "say": "You're signed in. Welcome back!"
+      "say": "You're signed in. Welcome back!",
+      "hands": "wave"
     },
     "auth.slugAvailable": {
       "mood": "ok"
@@ -299,7 +306,8 @@
     "auth.studioLaunched": {
       "mood": "celebrating",
       "first": "studio-launched",
-      "say": "Your studio is live!"
+      "say": "Your studio is live!",
+      "hands": "cheer"
     },
     "auth.studioName": {
       "mood": "waiting",
@@ -382,7 +390,8 @@
     },
     "billing.nothingToRestore": {
       "mood": "idle",
-      "say": "No purchases to restore."
+      "say": "No purchases to restore.",
+      "hands": "shrug"
     },
     "billing.otherDevice": {
       "mood": "thinking",
@@ -394,7 +403,8 @@
     },
     "billing.purchased": {
       "mood": "celebrating",
-      "say": "Purchase complete. Thank you!"
+      "say": "Purchase complete. Thank you!",
+      "hands": "cheer"
     },
     "billing.restoring": {
       "mood": "searching",
@@ -402,7 +412,8 @@
     },
     "billing.subscribed": {
       "mood": "celebrating",
-      "say": "You're subscribed. Thank you!"
+      "say": "You're subscribed. Thank you!",
+      "hands": "cheer"
     },
     "bookingForm.closed": {
       "mood": "sleepy",
@@ -487,7 +498,8 @@
     "capture.firstPhoto": {
       "mood": "celebrating",
       "first": "first-camera",
-      "say": "First photo in!"
+      "say": "First photo in!",
+      "hands": "cheer"
     },
     "capture.hintValues": {
       "mood": "thinking",
@@ -631,7 +643,8 @@
     },
     "cull.allDecided": {
       "mood": "celebrating",
-      "say": "Every photo decided!"
+      "say": "Every photo decided!",
+      "hands": "cheer"
     },
     "cull.assisted": {
       "mood": "waiting"
@@ -726,7 +739,8 @@
     },
     "cull.review": {
       "mood": "proud",
-      "say": "Ready for your review."
+      "say": "Ready for your review.",
+      "hands": "tada"
     },
     "cull.rowBlurred": {
       "mood": "oops"
@@ -801,7 +815,8 @@
     },
     "diagnostics.sent": {
       "mood": "happy",
-      "say": "Diagnostics sent. Thank you!"
+      "say": "Diagnostics sent. Thank you!",
+      "hands": "shy"
     },
     "event.corporateLocked": {
       "mood": "locked",
@@ -875,7 +890,8 @@
     "event.published": {
       "mood": "proud",
       "first": "first-event",
-      "say": "Event published!"
+      "say": "Event published!",
+      "hands": "tada"
     },
     "event.publishing": {
       "mood": "carrying",
@@ -913,7 +929,8 @@
     },
     "export.alreadyDone": {
       "mood": "ok",
-      "say": "Already exported."
+      "say": "Already exported.",
+      "hands": "shrug"
     },
     "export.done": {
       "mood": "celebrating",
@@ -972,7 +989,8 @@
     },
     "faces.none": {
       "mood": "searching",
-      "say": "No faces found."
+      "say": "No faces found.",
+      "hands": "shrug"
     },
     "faces.reading": {
       "mood": "scanning",
@@ -1031,7 +1049,8 @@
     },
     "hosts.duplicate": {
       "mood": "thinking",
-      "say": "That host is already invited."
+      "say": "That host is already invited.",
+      "hands": "shrug"
     },
     "hosts.empty": {
       "mood": "curious",
@@ -1059,7 +1078,8 @@
     },
     "hosts.joined": {
       "mood": "excited",
-      "say": "A host joined!"
+      "say": "A host joined!",
+      "hands": "wave"
     },
     "hosts.linkCreated": {
       "mood": "proud",
@@ -1195,7 +1215,8 @@
     },
     "job.delivered": {
       "mood": "proud",
-      "say": "Job delivered!"
+      "say": "Job delivered!",
+      "hands": "tada"
     },
     "media.locateOriginals": {
       "mood": "searching",
@@ -1288,7 +1309,8 @@
     "orbit.paidInFull": {
       "mood": "celebrating",
       "first": "first-paid",
-      "say": "Paid in full!"
+      "say": "Paid in full!",
+      "hands": "cheer"
     },
     "orbit.paymentFuture": {
       "mood": "careful"
@@ -1306,7 +1328,8 @@
     },
     "orbit.quoteAccepted": {
       "mood": "celebrating",
-      "say": "Quote accepted!"
+      "say": "Quote accepted!",
+      "hands": "cheer"
     },
     "orbit.quoteSent": {
       "mood": "sending",
@@ -1410,7 +1433,8 @@
     "selection.completed": {
       "mood": "celebrating",
       "first": "first-selection",
-      "say": "Selection complete!"
+      "say": "Selection complete!",
+      "hands": "cheer"
     },
     "selection.hostDone": {
       "mood": "happy",
@@ -1490,7 +1514,8 @@
     },
     "share.publicLive": {
       "mood": "proud",
-      "say": "Gallery is live!"
+      "say": "Gallery is live!",
+      "hands": "tada"
     },
     "share.qr": {
       "mood": "proud"
@@ -1535,7 +1560,8 @@
       "hold": true
     },
     "state.noResults": {
-      "mood": "searching"
+      "mood": "searching",
+      "hands": "shrug"
     },
     "state.nothingSelected": {
       "mood": "curious",
@@ -1632,7 +1658,8 @@
     },
     "team.duplicate": {
       "mood": "oops",
-      "say": "Already on your team."
+      "say": "Already on your team.",
+      "hands": "shrug"
     },
     "team.empty": {
       "mood": "curious",
@@ -1694,7 +1721,8 @@
     },
     "upload.background": {
       "mood": "goodbye",
-      "say": "Uploading in the background."
+      "say": "Uploading in the background.",
+      "hands": "wave"
     },
     "upload.backgroundAsk": {
       "mood": "waiting",
@@ -1707,7 +1735,8 @@
     "upload.done": {
       "mood": "celebrating",
       "first": "first-upload",
-      "say": "All photos uploaded!"
+      "say": "All photos uploaded!",
+      "hands": "cheer"
     },
     "upload.facesReading": {
       "mood": "scanning",
@@ -1807,7 +1836,8 @@
     },
     "wall.published": {
       "mood": "proud",
-      "say": "Studio Wall is live!"
+      "say": "Studio Wall is live!",
+      "hands": "tada"
     },
     "wall.styling": {
       "mood": "focused",
@@ -1851,7 +1881,8 @@
     },
     "website.aiWritten": {
       "mood": "proud",
-      "say": "Drafted it for you."
+      "say": "Drafted it for you.",
+      "hands": "tada"
     },
     "website.albumSaved": {
       "mood": "ok",
@@ -1887,7 +1918,8 @@
     "website.live": {
       "mood": "proud",
       "first": "first-website",
-      "say": "Your website is live!"
+      "say": "Your website is live!",
+      "hands": "tada"
     },
     "website.liveFailed": {
       "mood": "disconnected",

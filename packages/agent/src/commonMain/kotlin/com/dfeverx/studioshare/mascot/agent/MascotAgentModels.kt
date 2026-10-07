@@ -1,5 +1,6 @@
 package com.dfeverx.studioshare.mascot.agent
 
+import com.dfeverx.studioshare.mascot.face.HandGesture
 import kotlinx.serialization.Serializable
 
 /**
@@ -47,6 +48,8 @@ data class AgentAlert(
     val onAction: (() -> Unit)? = null,
     /** Only changes the face's mood; the notch stays shut (a moment with nothing to say). */
     val quiet: Boolean = false,
+    /** A gesture the face makes while it shows (a moment's spec `hands`); null keeps its hands away. */
+    val hands: HandGesture? = null,
 )
 
 /**
