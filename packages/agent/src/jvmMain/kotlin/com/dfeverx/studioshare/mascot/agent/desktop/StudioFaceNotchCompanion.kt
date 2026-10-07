@@ -494,32 +494,30 @@ fun StudioFaceNotchCompanion(
 
         // 60 Hz: where the mouse is against the island and the face. Pointer events can't do this:
         // the window ignores the mouse everywhere but the island.
+        // Clicks are taken only on the island as drawn, and never while it rests in the notch or sleeps:
+        // there it is hovered (from the mouse's position) but every click passes through.
         LaunchedEffect(Unit) {
-            var clickable = false
+            var clickable: Boolean? = null // unknown until the first pass sets it
             while (true) {
                 val m = runCatching { MouseInfo.getPointerInfo()?.location }.getOrNull()
+                var take = false
                 if (asleep) {
                     // nothing there to hover or click
                     if (inIsland) inIsland = false
                     if (overFace) overFace = false
-                    if (clickable) {
-                        clickable = false
-                        MacNotch.setClickThrough(NOTCH_WINDOW_TITLE, true)
-                    }
                 } else if (m != null) {
                     val x = m.x - window.x.toFloat()
                     val y = m.y - window.y.toFloat()
                     val left = (stage.width.value - metrics.width) / 2
                     val slack = 6f
-                    val now = x >= left - slack && x <= left + metrics.width + slack && y <= metrics.height + slack
-                    if (now != inIsland) inIsland = now
-                    if (now != clickable) {
-                        clickable = now
-                        MacNotch.setClickThrough(NOTCH_WINDOW_TITLE, !now)
-                    }
+                    val near = x >= left - slack && x <= left + metrics.width + slack && y <= metrics.height + slack
+                    if (near != inIsland) inIsland = near
+                    take = drawnLook != Look.Hidden && x >= left && x <= left + metrics.width && y <= metrics.height
                     val over = hypot(x - (left + metrics.faceX), y - metrics.faceY) <= metrics.faceSize / 2 + 4
                     if (over != overFace) overFace = over
                 }
+                // retried next pass if the window isn't there to set yet
+                if (take != clickable && setClickThrough(!take)) clickable = take
                 delay(16)
             }
         }
@@ -1133,3 +1131,9 @@ private fun cursorGaze(window: java.awt.Window, x: Float, y: Float) =
     if (x.isNaN()) null
     else runCatching { MouseInfo.getPointerInfo()?.location }.getOrNull()
         ?.let { gazeToward(it.x - (window.x + x), it.y - (window.y + y)) }
+
+/** Lets clicks through the companion's window (true) or takes them (false), on macOS and Windows; false if not yet done. */
+private fun setClickThrough(through: Boolean): Boolean {
+    MacNotch.setClickThrough(NOTCH_WINDOW_TITLE, through)
+    return WinWindow.setClickThrough(NOTCH_WINDOW_TITLE, through)
+}

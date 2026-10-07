@@ -114,7 +114,8 @@ covers a strip under the menu bar:
 
 The card is washed with the mood's colour and the face slides in from its row. The motion is the
 Dynamic Island's: a soft spring open, a firmer one closed, and content fading in out of a slight
-blur. Hovering keeps whatever is showing, and clicking the resting island opens it.
+blur. Hovering keeps whatever is showing. Only the island as drawn takes clicks, and not even that
+while it rests in the notch: there a hover grows it out, and a click on it then opens it.
 
 So it never sits in the way, the island goes entirely after 10 s with no card up, the mouse away and
 no warning waiting: nothing is drawn and every click passes through. A new alert, warning or task
