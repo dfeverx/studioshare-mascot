@@ -108,6 +108,8 @@ fun PreviewScreen(
 
     var selectedMood by remember { mutableStateOf("idle") }
     var selectedMoment by remember { mutableStateOf("upload.done") }
+    /** Bumped on every moment click, so clicking one again replays its gesture. */
+    var momentPlays by remember { mutableStateOf(0) }
     var isMomentMode by remember { mutableStateOf(false) }
     var isAnimating by remember { mutableStateOf(true) }
     var isDarkTheme by remember { mutableStateOf(true) }
@@ -182,6 +184,8 @@ fun PreviewScreen(
                             mood = shownMood,
                             animate = isAnimating,
                             progress = if (isSimulatingUpload) simulatedProgress else null,
+                            hands = if (isMomentMode) MascotMomentMoods.handsFor(selectedMoment) else null,
+                            handsId = momentPlays,
                             modifier = Modifier.size(240.dp)
                         )
 
@@ -194,7 +198,8 @@ fun PreviewScreen(
                                 .background(Color(0xFF282830).copy(alpha = 0.85f))
                                 .padding(horizontal = 16.dp, vertical = 6.dp)
                         ) {
-                            val label = if (isMomentMode) "Moment: $selectedMoment → $shownMood" else "Mood: $selectedMood"
+                            val gesture = MascotMomentMoods.handsFor(selectedMoment)?.let { " + ${it.id}" }.orEmpty()
+                            val label = if (isMomentMode) "Moment: $selectedMoment → $shownMood$gesture" else "Mood: $selectedMood"
                             val motion = MascotMomentMoods.motionOf(shownMood)
                             Text(
                                 text = "$label • motion: $motion" + if (isAnimating) "" else " (paused)",
@@ -267,6 +272,7 @@ fun PreviewScreen(
                                         selected = selectedMoment == moment,
                                         onClick = {
                                             selectedMoment = moment
+                                            momentPlays++
                                             isAnimating = true
                                             // the notch companion says it, if the moment has a line
                                             agent.moment(moment)

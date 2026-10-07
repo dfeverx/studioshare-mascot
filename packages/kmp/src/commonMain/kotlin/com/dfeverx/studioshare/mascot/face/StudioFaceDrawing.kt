@@ -151,6 +151,8 @@ internal fun DrawScope.drawStudioFace(
     progress: Float? = null,
     glow: Boolean = true,
     gaze: Offset? = null,
+    hands: HandGesture? = null,
+    handsT: Float = 0f,
 ) {
     val s = min(size.width, size.height) * 0.78f
     val pose = MascotMotion.pose(motion, motionT)
@@ -162,6 +164,8 @@ internal fun DrawScope.drawStudioFace(
     translate(c.x, c.y) {
         rotate(pose.rotation, pivot = Offset.Zero) {
             scale(pose.scaleX, pose.scaleY, pivot = Offset(0f, s / 2)) {
+                // hands grow from behind the body, so they hop and lean with it
+                if (hands != null && !hands.inFront) drawHands(s, hands, handsT)
                 drawBody(s, glow)
                 // the face turns toward what it looks at: eyes and mouth slide across the body and
                 // narrow a little, like features on a head turning — big enough to read even at
@@ -172,6 +176,7 @@ internal fun DrawScope.drawStudioFace(
                         drawMouth(s, p)
                     }
                 }
+                if (hands != null && hands.inFront) drawHands(s, hands, handsT)
                 val anchor = Offset(s * 0.43f, -s * 0.45f)
                 if (previousAccent != null && previousAlpha > 0.01f) drawAccent(previousAccent, anchor, s, t, previousAlpha, progress)
                 if (accent != null && accentAlpha > 0.01f) drawAccent(accent, anchor, s, t, accentAlpha, progress)

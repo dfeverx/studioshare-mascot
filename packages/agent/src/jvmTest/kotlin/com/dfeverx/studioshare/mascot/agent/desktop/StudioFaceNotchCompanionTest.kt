@@ -31,6 +31,7 @@ import com.dfeverx.studioshare.mascot.agent.AgentTask
 import com.dfeverx.studioshare.mascot.agent.AgentWarning
 import com.dfeverx.studioshare.mascot.agent.MascotAgent
 import com.dfeverx.studioshare.mascot.agent.MascotAgentState
+import com.dfeverx.studioshare.mascot.face.HandGesture
 import com.dfeverx.studioshare.mascot.face.StudioFace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -59,6 +60,10 @@ class StudioFaceNotchCompanionTest {
         AgentAlert("b", "New booking!", "Priya booked a portrait session for Sat 14 Nov.", mood = "celebrating", label = "Orbit"),
     )
 
+    private val celebrated = MascotAgentState.Alert(
+        AgentAlert("c", "All photos uploaded!", "", mood = "celebrating", label = "Upload", hands = HandGesture.Cheer),
+    )
+
     @Test fun restingIslandSaysNothing() {
         assertNull(liveCard(null, MascotAgentState.Idle(), opened = false, peeks = false))
         assertNull(liveCard(null, upload, opened = false, peeks = false))
@@ -75,7 +80,16 @@ class StudioFaceNotchCompanionTest {
         assertEquals(Tone.Warn, warn.detailTone)
         assertIs<NotchCard.Progress>(liveCard(null, upload, opened = false, peeks = true))
         assertIs<NotchCard.Progress>(liveCard(null, upload, opened = true, peeks = false))
-        assertIs<NotchCard.Message>(liveCard(null, MascotAgentState.Idle(), opened = true, peeks = false))
+    }
+
+    @Test fun clickingAQuietIslandWavesHelloWithoutWords() {
+        assertEquals(NotchCard.Hello, liveCard(null, MascotAgentState.Idle(), opened = true, peeks = false))
+        assertEquals(HandGesture.Wave, NotchCard.Hello.hands)
+        // the face drops straight out of the notch, bigger than at rest
+        val rest = facePlace(notched, Look.Rest, null, restSize(notched), DpSize.Zero)
+        val hello = facePlace(notched, Look.Card, NotchCard.Hello, DpSize.Zero, DpSize(150.dp, 54.dp))
+        assertEquals(0.dp, hello.dx)
+        assertTrue(hello.y > notched.bandHeight && hello.size > rest.size)
     }
 
     @Test fun everythingOpensDownIntoACard() {
@@ -100,6 +114,13 @@ class StudioFaceNotchCompanionTest {
 
         agent.moment(MascotMoments.AuthSignedIn, "Welcome back, Priya!")
         assertEquals("Welcome back, Priya!", assertIs<MascotAgentState.Alert>(agent.state.value).alert.title)
+
+        // the face gestures where the spec says it fits
+        assertEquals(HandGesture.Wave, said.hands)
+        agent.moment(MascotMoments.UploadDone)
+        assertEquals(HandGesture.Cheer, (liveCard(agent, agent.state.value, false, false) as NotchCard.Message).hands)
+        agent.moment(MascotMoments.UploadDone, firstAlreadySeen = true)
+        assertNull(assertIs<MascotAgentState.Alert>(agent.state.value).alert.hands)
 
         // a moment with nothing to say only changes the face
         agent.moment(MascotMoments.AppNavigated)
@@ -163,6 +184,8 @@ class StudioFaceNotchCompanionTest {
             booking to liveCard(agent, booking, false, false),
             warning to liveCard(agent, warning, false, false),
             upload to liveCard(agent, upload, opened = true, peeks = false),
+            MascotAgentState.Idle() to liveCard(agent, MascotAgentState.Idle(), opened = true, peeks = false),
+            celebrated to liveCard(agent, celebrated, false, false),
         )
         val w = stageSize(notched).width.value.toInt()
         val rowH = 110
@@ -172,7 +195,7 @@ class StudioFaceNotchCompanionTest {
                 islands.forEach { (state, card) ->
                     Box(Modifier.size(w.dp, rowH.dp), contentAlignment = Alignment.TopCenter) {
                         // the hardware notch, to see what it hides
-                        Island(state, card, notched, card?.mood ?: state.currentMood, animate = false)
+                        Island(state, card, notched, card?.mood ?: state.currentMood, animate = false, hands = card?.hands)
                         Box(Modifier.size(notched.notchWidth, notched.bandHeight).background(Color(0xFF3A1A1A).copy(alpha = 0.55f)))
                     }
                     Spacer(Modifier.height(8.dp))

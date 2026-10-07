@@ -193,6 +193,8 @@ fun MascotStage(
             StudioFace(
                 mood = if (walking) MascotMomentMoods.MOOD_WALK else sceneMood,
                 animate = shown && !reducedMotion && !dragging,
+                hands = MascotMomentMoods.handsFor(scene.momentKey, firstSeen).takeIf { scene.oneShot && !walking },
+                handsId = scene.cueId,
                 modifier = Modifier.fillMaxSize(),
             )
             if (menuOpen && menu != null) menu { menuOpen = false }

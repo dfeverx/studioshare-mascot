@@ -116,6 +116,30 @@ The card is washed with the mood's colour and the face slides in from the ear. T
 Dynamic Island's: a soft spring open, a firmer one closed, and content fading in out of a slight
 blur. Hovering keeps whatever is showing, and clicking the resting island opens it.
 
+Clicking the island while nothing is going on doesn't open a card with words. The notch opens a
+little, the face drops out of it with a wink, and waves.
+
+### Hands
+
+The face has no hands most of the time. Like Coucou's Mochi, two small soft ovals grow from behind
+its lower corners for a gesture, then tuck away when it's done. They are filled with the eyes' warm
+gradient, because black hands would vanish against the notch. A moment opts in with `hands` in
+`spec/mascot.json`, and only the few where a gesture really fits have one:
+
+| Gesture | What it does | Used for |
+|---|---|---|
+| `wave` | right hand waves beside the face | hello and goodbye: signed in/out, welcome back, a host joined, uploads going to the background, tapping the mascot, the notch's hello |
+| `cheer` | both hands up, pumping | the big milestones: studio live, first photo, all uploaded, paid in full, quote accepted, selection complete, subscribed |
+| `tada` | right hand sweeps out to present | something just went live: event published, gallery / wall / website live, a draft written, ready for review, job delivered |
+| `shrug` | both hands out, lifted once | nothing there or nothing to do: no faces found, no results, already exported, nothing to restore, already invited |
+| `shy` | hands on the cheeks | a thank-you (diagnostics sent), and the notch face blushing when the mouse rests on it |
+
+A first-time celebration seen before shows "ok" and doesn't cheer. In code:
+`StudioFace(mood, hands = MascotMomentMoods.handsFor(key), handsId = cueId)` (`MascotStage` and
+`MascotPose` already do this, and so do `MascotAgent.moment` and the notch). On the web it is
+`<StudioFace moment=… />`, or `hands="wave"` to gesture directly. `build/studio-face-preview/hands.png`
+shows every gesture over time.
+
 `MacNotch` reads the notch from the screen's safe area and logs what it found
 (`notch: 185 × 38 (measured …)`).
 

@@ -168,6 +168,7 @@ class MascotAgent(
             actionLabel = actionLabel,
             onAction = onAction,
             quiet = text == null,
+            hands = MascotMomentMoods.handsFor(key, firstAlreadySeen),
         )
         show(alert, durationMs ?: if (alert.quiet) 1_800L else readingTime(alert))
     }

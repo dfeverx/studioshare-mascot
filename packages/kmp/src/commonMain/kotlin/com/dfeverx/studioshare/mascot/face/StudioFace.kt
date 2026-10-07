@@ -27,6 +27,8 @@ private class FaceTween {
     var mood: String? = null
     var gaze: Offset? = null
     var gazeAt = 0f
+    var hands: Pair<HandGesture, Any?>? = null
+    var handsAt = 0f
 }
 
 /**
@@ -39,6 +41,8 @@ private class FaceTween {
  * @param gaze where the face should look, read every frame (so a moving cursor never recomposes):
  *   x and y each −1..1, right and down positive ([gazeToward] makes one from an offset); null lets
  *   the eyes drift on their own. The whole face turns toward it; scanning moods keep scanning.
+ * @param hands a gesture to make — the face has no hands otherwise. It plays once from when it is
+ *   set, and the hands tuck away when it ends; a new [handsId] (e.g. a new cue) plays it again.
  */
 @Composable
 fun StudioFace(
@@ -48,6 +52,8 @@ fun StudioFace(
     progress: Float? = null,
     glow: Boolean = true,
     gaze: (() -> Offset?)? = null,
+    hands: HandGesture? = null,
+    handsId: Any? = null,
 ) {
     var time by remember { mutableFloatStateOf(0.4f) }
     if (animate) {
@@ -84,6 +90,11 @@ fun StudioFace(
             }
         }
         tween.gazeAt = t
+        val cue = hands?.let { it to handsId }
+        if (cue != tween.hands) {
+            tween.hands = cue
+            tween.handsAt = t
+        }
         val sameAccent = tween.fromAccent == expression.accent
         // One-shot motions (hop, pop, nod…) replay every few seconds while the mood is held.
         val motionT = if (animate) since % 6f else 0.4f
@@ -99,6 +110,8 @@ fun StudioFace(
             progress = progress,
             glow = glow,
             gaze = tween.gaze,
+            hands = hands,
+            handsT = if (animate) t - tween.handsAt else hands?.still ?: 0f,
         )
     }
 }

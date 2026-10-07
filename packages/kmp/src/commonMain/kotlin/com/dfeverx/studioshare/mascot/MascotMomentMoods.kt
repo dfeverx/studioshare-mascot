@@ -1,5 +1,7 @@
 package com.dfeverx.studioshare.mascot
 
+import com.dfeverx.studioshare.mascot.face.HandGesture
+
 /** One row of `spec/mascot.json`'s moments: the mood a moment shows. */
 data class MascotMomentDef(
     val mood: String,
@@ -9,6 +11,8 @@ data class MascotMomentDef(
     val first: String? = null,
     /** The default line a one-off moment says in the notch; null keeps it to a change of face. */
     val say: String? = null,
+    /** A [HandGesture] id the face makes with this moment (`wave`, `cheer`…); most moments have none. */
+    val hands: String? = null,
 )
 
 /**
@@ -32,6 +36,15 @@ object MascotMomentMoods {
             m.mood in MASCOT_MOOD_MOTIONS -> m.mood
             else -> MOOD_IDLE
         }
+    }
+
+    /**
+     * The gesture [momentKey]'s face makes, if any. A first-time celebration seen before is just
+     * "ok", so it doesn't cheer again either.
+     */
+    fun handsFor(momentKey: String?, firstAlreadySeen: Boolean = false): HandGesture? {
+        val m = moment(momentKey) ?: return null
+        return if (m.first != null && firstAlreadySeen) null else HandGesture.of(m.hands)
     }
 
     /** The label a notification header shows for [momentKey]'s area, e.g. `upload.done` → "Upload". */

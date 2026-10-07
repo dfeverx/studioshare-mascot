@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { StudioFacePlayer } from './face';
-import { moodForMoment, type MascotMoment } from './moments';
+import { handsForMoment, moodForMoment, type HandGesture, type MascotMoment } from './moments';
 
 export interface StudioFaceProps {
   /** A moment key from moments.ts (e.g. 'cull.running', 'upload.done'). */
@@ -14,6 +14,11 @@ export interface StudioFaceProps {
   /** Rendered size in CSS pixels (square). Default 96. */
   size?: number;
   className?: string;
+  /**
+   * A gesture to make with the hands, played once whenever this or `moment` changes. Defaults to
+   * the moment's own (spec `hands`); most moments have none, and the face has no hands then.
+   */
+  hands?: HandGesture | null;
   /** Turn to watch the pointer anywhere on the page. Off under prefers-reduced-motion. */
   followPointer?: boolean;
 }
@@ -22,7 +27,7 @@ export interface StudioFaceProps {
  * The StudioShare app-icon face on the web: the same moods and moments as the apps, drawn in code
  * on a canvas (no images to load). Decorative (aria-hidden). Honours prefers-reduced-motion.
  */
-export function StudioFace({ moment, mood, progress, size = 96, className, followPointer = false }: StudioFaceProps) {
+export function StudioFace({ moment, mood, progress, size = 96, className, followPointer = false, hands }: StudioFaceProps) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const player = useRef<StudioFacePlayer | null>(null);
   const shown = moment ? moodForMoment(moment) : mood ?? 'idle';
@@ -48,6 +53,11 @@ export function StudioFace({ moment, mood, progress, size = 96, className, follo
   useEffect(() => {
     if (player.current) player.current.progress = progress ?? null;
   }, [progress]);
+
+  const gesture = hands !== undefined ? hands : moment ? handsForMoment(moment) ?? null : null;
+  useEffect(() => {
+    player.current?.playHands(gesture);
+  }, [gesture, moment]);
 
   useEffect(() => {
     const p = player.current;

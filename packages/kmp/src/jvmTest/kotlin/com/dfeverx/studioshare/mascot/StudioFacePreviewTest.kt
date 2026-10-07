@@ -10,6 +10,9 @@ import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import com.dfeverx.studioshare.mascot.face.FaceParams
+import com.dfeverx.studioshare.mascot.face.HandGesture
+import com.dfeverx.studioshare.mascot.face.handPose
+import com.dfeverx.studioshare.mascot.face.handsOut
 import com.dfeverx.studioshare.mascot.face.StudioFaceExpressions
 import com.dfeverx.studioshare.mascot.face.drawStudioFace
 import org.jetbrains.skia.EncodedImageFormat
@@ -23,7 +26,7 @@ import com.dfeverx.studioshare.mascot.face.gazeToward
 /**
  * Renders every mood of the StudioShare face to `build/studio-face-preview/moods.png`, and the idle
  * face looking at each point of the compass to `gaze.png` — the way to look at the face without
- * running the app.
+ * running the app. `hands.png` is each hand gesture (a row) through its life (columns, left to right).
  */
 class StudioFacePreviewTest {
 
@@ -75,6 +78,56 @@ class StudioFacePreviewTest {
         }
         val png = Image.makeFromBitmap(bitmap.asSkiaBitmap()).encodeToData(EncodedImageFormat.PNG)!!.bytes
         File(out, "gaze.png").writeBytes(png)
+    }
+
+    @Test fun renderHands() {
+        val out = File("build/studio-face-preview").apply { mkdirs() }
+        val cell = 200
+        val steps = 6
+        // the mood each gesture is used with most
+        val gestures = listOf(
+            HandGesture.Wave to "happy", HandGesture.Cheer to "celebrating", HandGesture.TaDa to "proud",
+            HandGesture.Shrug to "thinking", HandGesture.Shy to "shy",
+        )
+        val bitmap = ImageBitmap(steps * cell, gestures.size * cell)
+        val canvas = Canvas(bitmap)
+        CanvasDrawScope().draw(Density(1f), LayoutDirection.Ltr, canvas, Size(steps * cell.toFloat(), gestures.size * cell.toFloat())) {
+            drawRect(Color(0xFF000000))
+        }
+        gestures.forEachIndexed { row, (g, mood) ->
+            val e = StudioFaceExpressions.forMood(mood)
+            for (col in 0 until steps) {
+                val t = 0.12f + col * (g.seconds - 0.24f) / (steps - 1)
+                canvas.save()
+                // the face at half the cell, so its hands have room and stay out of the next one
+                canvas.translate(col * cell + cell / 4f, row * cell + cell / 4f)
+                CanvasDrawScope().draw(Density(1f), LayoutDirection.Ltr, canvas, Size(cell / 2f, cell / 2f)) {
+                    drawStudioFace(FaceParams.of(e), "none", t = 1.2f, motionT = 0f, accent = null, hands = g, handsT = t)
+                }
+                canvas.restore()
+            }
+        }
+        val png = Image.makeFromBitmap(bitmap.asSkiaBitmap()).encodeToData(EncodedImageFormat.PNG)!!.bytes
+        File(out, "hands.png").writeBytes(png)
+    }
+
+    @Test fun handsComeOutForTheGestureOnly() {
+        for (g in HandGesture.entries) {
+            assertEquals(0f, handsOut(g, -0.01f), "$g before")
+            assertEquals(0f, handsOut(g, g.seconds + 0.01f), "$g after")
+            assertEquals(1f, handsOut(g, g.seconds / 2), "$g midway")
+            assertEquals(g, HandGesture.of(g.id))
+            // the hands stay near the body: never more than a hand's width past its sides or above it
+            var t = 0f
+            while (t < g.seconds) {
+                for (side in intArrayOf(-1, 1)) {
+                    val p = handPose(g, side, t)
+                    assertTrue(kotlin.math.abs(p.x) <= 0.8f && p.y >= -0.5f && p.y <= 0.45f, "$g $side at $t: $p")
+                }
+                t += 0.05f
+            }
+        }
+        assertEquals(null, HandGesture.of("clap"))
     }
 
     @Test fun gazeTurnsEachAxisOnItsOwn() {

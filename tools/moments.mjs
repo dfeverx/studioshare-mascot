@@ -19,6 +19,8 @@ const moods = Object.keys(spec.moods).sort();
 const keys = Object.keys(spec.moments).sort();
 
 // ---- validate -------------------------------------------------------------------------------
+// the gestures the face's hands can make (HandGesture in face/StudioFaceHands.kt, HandGesture in face.ts)
+const GESTURES = ['wave', 'cheer', 'shrug', 'tada', 'shy'];
 const errors = [];
 if (!spec.moods.idle) errors.push('moods must include "idle"');
 for (const k of keys) {
@@ -29,6 +31,10 @@ for (const k of keys) {
     if (typeof m.say !== 'string' || !m.say.trim()) errors.push(`moment ${k}: say must be a non-empty string`);
     else if (m.say.length > 60) errors.push(`moment ${k}: say must fit the notch (60 characters at most)`);
     if (m.hold) errors.push(`moment ${k}: a held moment can't say anything (it lasts; the notch speaks once)`);
+  }
+  if (m.hands !== undefined) {
+    if (!GESTURES.includes(m.hands)) errors.push(`moment ${k}: hands must be one of ${GESTURES.join(', ')}`);
+    if (m.hold) errors.push(`moment ${k}: a held moment can't gesture (a gesture plays once)`);
   }
   if (!spec.areas?.[k.split('.')[0]]) errors.push(`moment ${k}: no area label for "${k.split('.')[0]}"`);
 }
@@ -66,6 +72,7 @@ const ktMoment = (m) => {
   if (m.hold) args.push('hold = true');
   if (m.first) args.push(`first = "${m.first}"`);
   if (m.say) args.push(`say = ${quoted(m.say).replace(/\$/g, '\\$')}`);
+  if (m.hands) args.push(`hands = "${m.hands}"`);
   return `MascotMomentDef(${args.join(', ')})`;
 };
 write(path.join(KMP_DIR, 'MascotMomentTable.kt'), `${header('')}
@@ -89,7 +96,7 @@ ${areas.map((a) => `    "${a}" to ${quoted(spec.areas[a])},`).join('\n')}
 
 // ---- TypeScript -----------------------------------------------------------------------------
 const tsMoment = (m) =>
-  `{ mood: '${m.mood}'${m.hold ? ', hold: true' : ''}${m.first ? `, first: '${m.first}'` : ''}${m.say ? `, say: ${quoted(m.say)}` : ''} }`;
+  `{ mood: '${m.mood}'${m.hold ? ', hold: true' : ''}${m.first ? `, first: '${m.first}'` : ''}${m.say ? `, say: ${quoted(m.say)}` : ''}${m.hands ? `, hands: '${m.hands}'` : ''} }`;
 write(WEB_TS, `${header('')}
 // Moment keys are the contract between code and the mascot: append-only, never renamed.
 export const MascotMoments = {
@@ -97,6 +104,9 @@ ${keys.map((k) => `  ${camel(k)}: '${k}',`).join('\n')}
 } as const;
 
 export type MascotMoment = (typeof MascotMoments)[keyof typeof MascotMoments];
+
+/** What the face can do with its hands (it has none otherwise). */
+export type HandGesture = ${GESTURES.map((g) => `'${g}'`).join(' | ')};
 
 export interface MascotMomentDef {
   mood: string;
@@ -106,6 +116,8 @@ export interface MascotMomentDef {
   first?: string;
   /** The default line a one-off moment says; only moments with one announce themselves. */
   say?: string;
+  /** A gesture the face makes with its hands for this moment; most moments have none. */
+  hands?: HandGesture;
 }
 
 /** Mood name → its body motion. */
@@ -117,6 +129,12 @@ ${moods.map((m) => `  ${m}: '${spec.moods[m].motion}',`).join('\n')}
 export const mascotMomentMoods: Record<string, MascotMomentDef> = {
 ${keys.map((k) => `  '${k}': ${tsMoment(spec.moments[k])},`).join('\n')}
 };
+
+/** The gesture a moment's face makes, if any; a first celebration already seen doesn't cheer again. */
+export function handsForMoment(moment: string, firstAlreadySeen = false): HandGesture | undefined {
+  const m = mascotMomentMoods[moment];
+  return m && !(m.first && firstAlreadySeen) ? m.hands : undefined;
+}
 
 /** The mood for a moment; unknown moments read as idle. */
 export function moodForMoment(moment: string): string {

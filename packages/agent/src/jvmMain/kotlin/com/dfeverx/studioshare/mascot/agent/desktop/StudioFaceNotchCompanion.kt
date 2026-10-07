@@ -73,6 +73,7 @@ import androidx.compose.ui.window.rememberWindowState
 import com.dfeverx.studioshare.mascot.agent.AgentTask
 import com.dfeverx.studioshare.mascot.agent.MascotAgent
 import com.dfeverx.studioshare.mascot.agent.MascotAgentState
+import com.dfeverx.studioshare.mascot.face.HandGesture
 import com.dfeverx.studioshare.mascot.face.StudioFace
 import com.dfeverx.studioshare.mascot.face.gazeToward
 import kotlinx.coroutines.delay
@@ -134,6 +135,9 @@ private val FACE_RIDER = 24.dp
 private val FACE_LEAD = 14.dp
 private val BAR_H = 5.dp
 private val BAR_BOTTOM = 12.dp
+/** The hello: the face dropped out of the notch with room under it, and the hand it waves. */
+private val HELLO_SIZE = DpSize(150.dp, 54.dp)
+private val FACE_HELLO = 44.dp
 
 /** Room around the island for its spring to overshoot into, and for the face's glow. */
 private val WINDOW_MARGIN = 16.dp
@@ -151,6 +155,8 @@ private val closeSpring: AnimationSpec<Dp> = spring(dampingRatio = 1f, stiffness
 private const val COLLAPSE_AFTER_LEAVE_MS = 1_500L
 /** A new task peeks out with its progress this long, then tucks back to a ring in the ear. */
 private const val TASK_PEEK_MS = 3_500L
+/** How long a hello stays out: the hand rises, waves, and the island folds back. */
+private const val HELLO_MS = 2_300L
 /** Resting the mouse on the face this long makes it blush; then not again for a while. */
 private const val LOVE_AFTER_MS = 1_900L
 private const val LOVE_COOLDOWN_MS = 6_000L
@@ -194,6 +200,8 @@ internal class CardButton(val label: String, val primary: Boolean, val onClick: 
 internal sealed interface NotchCard {
     val mood: String
     val key: String
+    /** What the face does with its hands while this shows; null keeps them away. */
+    val hands: HandGesture? get() = null
 
     /** A message: where it's from, what happened, maybe a line more and a button or two. */
     data class Message(
@@ -204,6 +212,7 @@ internal sealed interface NotchCard {
         val detail: String? = null,
         val detailTone: Tone? = null,
         val buttons: List<CardButton> = emptyList(),
+        override val hands: HandGesture? = null,
     ) : NotchCard {
         /** Just a line: opens as a single row, the shortest card there is. */
         val isNote get() = detail == null && buttons.isEmpty()
@@ -217,6 +226,13 @@ internal sealed interface NotchCard {
         val queued: Int,
         val expanded: Boolean,
     ) : NotchCard
+
+    /** No words: the face drops out of the notch and waves. What a click on a quiet island gets. */
+    data object Hello : NotchCard {
+        override val key = "hello"
+        override val mood = "glance"
+        override val hands = HandGesture.Wave
+    }
 }
 
 /** How the island is: resting in the notch, or open with a card under it. */
@@ -227,7 +243,7 @@ internal fun lookOf(card: NotchCard?): Look = if (card == null) Look.Rest else L
 /**
  * What the island should be showing for [state], or null to rest in the notch. A warning or alert
  * speaks for itself; a task shows its progress while it [peeks] (just started), and opens out when
- * [opened] by a click; a click on a quiet island says so.
+ * [opened] by a click; a click on a quiet island gets a wave hello.
  */
 internal fun liveCard(agent: MascotAgent?, state: MascotAgentState, opened: Boolean, peeks: Boolean): NotchCard? =
     when (state) {
@@ -265,6 +281,7 @@ internal fun liveCard(agent: MascotAgent?, state: MascotAgentState, opened: Bool
                     CardButton(a.actionLabel, primary = true) { action(); agent?.dismissAlert(a.id) },
                     CardButton("OK", primary = false) { agent?.dismissAlert(a.id) },
                 ) else emptyList(),
+                hands = a.hands,
             )
         }
         is MascotAgentState.Working ->
@@ -272,8 +289,7 @@ internal fun liveCard(agent: MascotAgent?, state: MascotAgentState, opened: Bool
                 NotchCard.Progress("task:$opened", state.currentMood, state.activeTask, state.queuedTasks.size, expanded = opened)
             } else null
         is MascotAgentState.Idle ->
-            if (opened) NotchCard.Message("idle", "idle", "StudioShare", "All quiet. I'll tell you when something happens.")
-            else null
+            if (opened) NotchCard.Hello else null
     }
 
 /**
@@ -325,11 +341,19 @@ fun StudioFaceNotchCompanion(
     }
 
     // what is showing: the live card, or — while the mouse is on it — the last one, so it can be read
+    // (a hello has nothing to read, so it never lingers)
     val live = liveCard(agent, state, opened, peeks = peekTask != null && peekTask == activeTask)
     var shown by remember { mutableStateOf<NotchCard?>(null) }
     LaunchedEffect(live, inIsland) {
         if (live != null) shown = live
-        else if (shown != null && !inIsland) shown = null
+        else if (shown != null && (!inIsland || shown == NotchCard.Hello)) shown = null
+    }
+    // a hello waves and folds back, mouse or no mouse
+    LaunchedEffect(live) {
+        if (live == NotchCard.Hello) {
+            delay(HELLO_MS)
+            opened = false
+        }
     }
     // a click-opened island folds back once the mouse has been away a moment
     LaunchedEffect(opened, inIsland) {
@@ -405,6 +429,9 @@ fun StudioFaceNotchCompanion(
                     card = shown,
                     notch = notch,
                     mood = if (love) "shy" else shown?.mood ?: state.currentMood,
+                    // a blush hides behind its hands; a card gestures if its moment does
+                    hands = if (love) HandGesture.Shy else shown?.hands,
+                    handsId = if (love) "love@$lastLove" else shown?.key,
                     faceScale = faceScale,
                     metrics = metrics,
                     onRestClick = { opened = true },
@@ -435,6 +462,8 @@ internal fun Island(
     notch: NotchGeometry,
     mood: String,
     animate: Boolean = true,
+    hands: HandGesture? = null,
+    handsId: Any? = null,
     faceScale: Float = 1f,
     metrics: IslandMetrics? = null,
     onRestClick: () -> Unit = {},
@@ -522,8 +551,10 @@ internal fun Island(
                 .size(faceSize)
                 .graphicsLayer { scaleX = faceScale; scaleY = faceScale },
         ) {
-            Face(state, mood, animate, onFaceClick)
-            if (tone != Tone.Calm) StatusBadge(tone, faceSize)
+            // hands once the face is out of the ear; in it, only hands kept on the cheeks fit the band
+            Face(state, mood, animate, hands.takeIf { shownLook == Look.Card || it == HandGesture.Shy }, handsId, onFaceClick)
+            // a gesturing face drops its badge: the hands would land on it (the card has its own dot)
+            if (tone != Tone.Calm && hands == null) StatusBadge(tone, faceSize)
         }
     }
 }
@@ -597,6 +628,9 @@ internal fun facePlace(notch: NotchGeometry, look: Look, card: NotchCard?, islan
             val size = (band - 2.dp).coerceAtMost(40.dp)
             FacePlace(-restSize(notch).width / 2 + REST_FACE_LEAD + size / 2, band / 2, size)
         }
+        card == NotchCard.Hello ->
+            // dropped straight down out of the notch, in the middle of the room it opened
+            FacePlace(0.dp, band + cardSize.height / 2, FACE_HELLO)
         card is NotchCard.Progress -> {
             // riding the bar's leading edge, like Coucou's Mochi on an upload
             val barW = cardSize.width - FACE_LEAD * 2
@@ -621,6 +655,8 @@ private fun topCentre(notch: NotchGeometry, width: Dp) = WindowPosition(
 /** The card: wide and short, washed from below with its mood's colour. */
 @Composable
 internal fun CardView(card: NotchCard, minWidth: Dp) {
+    // a hello is no card at all: just black room under the notch for the face to wave in
+    if (card == NotchCard.Hello) return Spacer(Modifier.size(HELLO_SIZE))
     val tone = toneOf(card.mood)
     val shape = RoundedCornerShape(CARD_CORNER)
     Box(
@@ -642,6 +678,7 @@ internal fun CardView(card: NotchCard, minWidth: Dp) {
         when (card) {
             is NotchCard.Message -> MessageCard(card)
             is NotchCard.Progress -> ProgressCard(card)
+            NotchCard.Hello -> Unit
         }
     }
 }
@@ -791,7 +828,14 @@ private fun StatusBadge(tone: Tone, face: Dp) {
 }
 
 @Composable
-private fun Face(state: MascotAgentState, mood: String, animate: Boolean, onClick: () -> Unit) {
+private fun Face(
+    state: MascotAgentState,
+    mood: String,
+    animate: Boolean,
+    hands: HandGesture?,
+    handsId: Any?,
+    onClick: () -> Unit,
+) {
     val progress = (state as? MascotAgentState.Working)?.activeTask
         ?.takeUnless { it.isIndeterminate }?.progress
     val window = LocalNotchWindow.current
@@ -802,6 +846,8 @@ private fun Face(state: MascotAgentState, mood: String, animate: Boolean, onClic
         mood = mood,
         progress = progress,
         animate = animate,
+        hands = hands,
+        handsId = handsId,
         gaze = window?.let { w -> { cursorGaze(w, centre[0] / density, centre[1] / density) } },
         modifier = Modifier
             .fillMaxSize()
