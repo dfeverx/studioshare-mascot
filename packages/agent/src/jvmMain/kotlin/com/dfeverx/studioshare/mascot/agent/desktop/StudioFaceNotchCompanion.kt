@@ -1,6 +1,8 @@
 package com.dfeverx.studioshare.mascot.agent.desktop
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
@@ -31,15 +33,12 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
@@ -48,19 +47,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -81,75 +82,76 @@ import kotlin.math.hypot
 
 internal const val NOTCH_WINDOW_TITLE = "StudioShare Notch Companion"
 
-/**
- * Each side of the island that shows past the notch at rest: the face sits in the left one's outer
- * corner, a status mark in the right. Always there, notch or not, so the face is never behind the camera.
- */
-internal val EAR = 88.dp
-/**
- * Extra room either side of the measured notch, so nothing tucks under the camera housing's curve
- * (or under a notch measured a little narrow).
- */
-internal val NOTCH_SLACK = 8.dp
-/**
- * How far in from the island's outer edges the resting marks sit: the face at the far left, the
- * status mark at the far right. The face's box is a little bigger than its drawn body, so the two
- * insets differ to look equal.
- */
-private val REST_FACE_LEAD = 6.dp
-private val REST_MARK_TRAIL = 12.dp
-/** The island's height without a notch to match. */
-private val FLAT_BAND = 30.dp
-/** The widest the island grows. */
-private val ISLAND_MAX_W = 760.dp
+// ---- geometry (laid out after Coucou's island: hidden, compact, open) -------------------------
 
-// ---- the look (after Coucou: a black island, a lifted card washed with the mood's colour) ----
+/** Without a notch the hidden island is a small tab this size at the top centre. */
+private val FLAT_W = 80.dp
+private val FLAT_BAND = 28.dp
+/** Compact grows the hidden island by this much each side: room for the face and a status mark. */
+internal val COMPACT_GROW = 80.dp
+/** Where the face and the status mark sit in compact, in from the island's left and right edges. */
+private val COMPACT_INSET = 40.dp
+/** The open island: always this wide, as tall as what it shows. */
+internal val OPEN_W = 640.dp
+internal val OPEN_H = 160.dp
+internal val OPEN_PROGRESS_H = 176.dp
+
+/** The open island's column: a header row under the top edge, then the card. */
+private val HEADER_TOP = 8.dp
+private val HEADER_H = 34.dp
+private val CARD_TOP = HEADER_TOP + HEADER_H
+private val CARD_BOTTOM_PAD = 10.dp
+private val CARD_SIDE_PAD = 10.dp
+
+/** The face in a message card, centred this far in from the island's left edge. */
+private val MESSAGE_FACE_X = 64.dp
+private val MESSAGE_FACE = 56.dp
+/** Text starts here in the card, clear of the face. */
+private val MESSAGE_LEAD = 106.dp
+
+/** The progress card: padding either side of the bar, the bar's top in the card, its height. */
+private val BAR_PAD = 26.dp
+private val BAR_Y = 86.dp
+private val BAR_H = 6.dp
+private val FACE_RIDER = 28.dp
+
+/** Bottom corners: the notch's own curve until it opens, then rounder. */
+private val REST_CORNER = 14.dp
+private val OPEN_CORNER = 22.dp
+private val CARD_CORNER = 20.dp
+
+/** Room around the island for the spring to overshoot into. */
+private val WINDOW_MARGIN = 16.dp
+
+// ---- the look --------------------------------------------------------------------------------
 
 internal val INK = Color(0xFF000000)
 private val CARD = Color(0xFF141518)
 private val CARD_EDGE = Color.White.copy(alpha = 0.035f)
 private val TEXT = Color(0xFFF5F6F8)
 private val MUTED = Color(0xFF8E939C)
+private val DIM = Color(0xFF6B7079)
+private val BAR_LABEL = Color(0xFFA9ADB5)
 private val BAD_TEXT = Color(0xFFFF8D97)
 private val WARN_TEXT = Color(0xFFF7C46C)
-private val TRACK = Color.White.copy(alpha = 0.08f)
-private val FILL_START = Color(0xFF22C55E)
+private val TRACK = Color.White.copy(alpha = 0.09f)
+private val FILL_START = Color(0xFF1FA87A)
 private val FILL_END = Color(0xFF34D399)
+private val FILL_GLOW = Color(0xFF6EE7B7)
 
-/**
- * The island's corners. The notch companion is the one place the mascot breaks the no-radius rule:
- * the island has to read as the notch grown longer, and everything in it follows the notch's curve.
- */
-private val REST_CORNER = 14.dp
-private val OPEN_CORNER = 24.dp
-private val CARD_CORNER = 18.dp
+// ---- motion ----------------------------------------------------------------------------------
 
-/** Island padding around a card; the band above it is the notch's own height. */
-private val PAD = 10.dp
-private val CARD_TEXT_MAX = 440.dp
-private val PROGRESS_W = 520.dp
-private val FACE_NOTE = 32.dp
-private val FACE_CARD = 42.dp
-private val FACE_RIDER = 24.dp
-private val FACE_LEAD = 14.dp
-private val BAR_H = 5.dp
-private val BAR_BOTTOM = 12.dp
+/** Opening: a spring with a little overshoot (SwiftUI's response 0.5 s, damping 0.72). */
+private val openSpring: AnimationSpec<Dp> = spring(dampingRatio = 0.72f, stiffness = 158f)
+/** Closing: a quick ease that settles without any bounce. */
+private val closeTween: AnimationSpec<Dp> = tween(340, easing = CubicBezierEasing(0.45f, 0f, 0.2f, 1f))
+private val easeIn = CubicBezierEasing(0.42f, 0f, 1f, 1f)
 
-/** Room around the island for its spring to overshoot into, and for the face's glow. */
-private val WINDOW_MARGIN = 16.dp
-private val STAGE_CARD_H = 100.dp
-
-/**
- * Dynamic Island motion: opening is a soft spring with just a breath of overshoot, closing a firmer
- * one that settles without any — both springs, so a change of mind mid-way carries its momentum
- * instead of jumping.
- */
-private val openSpring: AnimationSpec<Dp> = spring(dampingRatio = 0.78f, stiffness = 190f)
-private val closeSpring: AnimationSpec<Dp> = spring(dampingRatio = 1f, stiffness = 320f)
-
-/** How long a click-opened island waits after the mouse leaves before it folds back. */
-private const val COLLAPSE_AFTER_LEAVE_MS = 1_500L
-/** A new task peeks out with its progress this long, then tucks back to a ring in the ear. */
+/** How long an open island waits after the mouse leaves before it folds back to compact. */
+private const val COLLAPSE_AFTER_LEAVE_MS = 15_000L
+/** How long compact stays after the mouse leaves before it hides back into the notch. */
+private const val HIDE_AFTER_LEAVE_MS = 60_000L
+/** A new task opens with its progress this long, then folds back to a ring in compact. */
 private const val TASK_PEEK_MS = 3_500L
 /** Resting the mouse on the face this long makes it blush; then not again for a while. */
 private const val LOVE_AFTER_MS = 1_900L
@@ -158,10 +160,12 @@ private const val LOVE_HOLD_MS = 2_500L
 
 /** The companion's window, so a [Face] inside it can work out where it sits on screen. */
 private val LocalNotchWindow = compositionLocalOf<java.awt.Window?> { null }
+/** The companion's sounds, for the buttons; null (the tests' render) is silent. */
+private val LocalNotchSounds = compositionLocalOf<NotchSoundPlayer?> { null }
 
 // ---- tone: the colour a mood washes the card with ------------------------------------------
 
-/** Colour family of a mood, for the card's wash, its header dot and the badge on the face. */
+/** Colour family of a mood, for the card's wash, its dot and the badge on the face. */
 internal enum class Tone(val color: Color, val wash: Float) {
     Good(Color(0xFF34D399), 0.50f),
     Warn(Color(0xFFF5A524), 0.42f),
@@ -195,7 +199,7 @@ internal sealed interface NotchCard {
     val mood: String
     val key: String
 
-    /** A message: where it's from, what happened, maybe a line more and a button or two. */
+    /** A message: who it's from, what happened, maybe a line more and a button or two. */
     data class Message(
         override val key: String,
         override val mood: String,
@@ -204,8 +208,10 @@ internal sealed interface NotchCard {
         val detail: String? = null,
         val detailTone: Tone? = null,
         val buttons: List<CardButton> = emptyList(),
+        /** Small and dim after the label, e.g. "1 of 3". */
+        val counter: String? = null,
     ) : NotchCard {
-        /** Just a line: opens as a single row, the shortest card there is. */
+        /** Just a line: no detail, no buttons. */
         val isNote get() = detail == null && buttons.isEmpty()
     }
 
@@ -219,15 +225,23 @@ internal sealed interface NotchCard {
     ) : NotchCard
 }
 
-/** How the island is: resting in the notch, or open with a card under it. */
-internal enum class Look { Rest, Card }
-
-internal fun lookOf(card: NotchCard?): Look = if (card == null) Look.Rest else Look.Card
+/** How the island is: hidden in the notch, compact around it, or open with a card. */
+internal enum class Look { Hidden, Compact, Open }
 
 /**
- * What the island should be showing for [state], or null to rest in the notch. A warning or alert
- * speaks for itself; a task shows its progress while it [peeks] (just started), and opens out when
- * [opened] by a click; a click on a quiet island says so.
+ * The look for what is showing: a card opens the island; otherwise a hover ([peeking]) or something
+ * underway or waiting keeps it compact, so its mark shows; otherwise it hides in the notch.
+ */
+internal fun lookOf(card: NotchCard?, state: MascotAgentState, peeking: Boolean): Look = when {
+    card != null -> Look.Open
+    peeking || state is MascotAgentState.Working || state is MascotAgentState.Warning -> Look.Compact
+    else -> Look.Hidden
+}
+
+/**
+ * What the island should be showing for [state], or null to stay shut. A warning or alert speaks
+ * for itself; a task shows its progress while it [peeks] (just started), and when [opened] by a
+ * click; a click on a quiet island says so.
  */
 internal fun liveCard(agent: MascotAgent?, state: MascotAgentState, opened: Boolean, peeks: Boolean): NotchCard? =
     when (state) {
@@ -238,15 +252,16 @@ internal fun liveCard(agent: MascotAgent?, state: MascotAgentState, opened: Bool
             NotchCard.Message(
                 key = "warning:${w.id}",
                 mood = w.mood,
-                label = (w.label ?: "Heads up") + if (count > 1) "  ·  1 of $count" else "",
+                label = w.label ?: "Heads up",
+                counter = "1 of $count".takeIf { count > 1 },
                 title = w.title,
                 detail = w.message.takeIf { it.isNotBlank() },
                 detailTone = if (toneOf(w.mood) == Tone.Bad) Tone.Bad else Tone.Warn,
                 buttons = listOfNotNull(
+                    CardButton("Dismiss", primary = false) { agent?.dismissWarning(w.id) },
                     if (w.actionLabel != null && action != null) {
                         CardButton(w.actionLabel, primary = true) { action(); agent?.dismissWarning(w.id) }
                     } else null,
-                    CardButton("Dismiss", primary = false) { agent?.dismissWarning(w.id) },
                 ),
             )
         }
@@ -276,17 +291,32 @@ internal fun liveCard(agent: MascotAgent?, state: MascotAgentState, opened: Bool
             else null
     }
 
+/** The sound for the island turning [from] one look [to] another while showing [card]; null for none. */
+internal fun soundFor(from: Look, to: Look, card: NotchCard?): NotchSound? = when {
+    to == Look.Open && from != Look.Open -> when {
+        card is NotchCard.Message && card.key.startsWith("warning:") -> NotchSound.Attention
+        card is NotchCard.Message && card.key.startsWith("alert:") -> when (toneOf(card.mood)) {
+            Tone.Good -> NotchSound.Done
+            Tone.Bad -> NotchSound.Error
+            Tone.Warn -> NotchSound.Attention
+            else -> NotchSound.Open
+        }
+        else -> NotchSound.Open
+    }
+    from == Look.Open && to != Look.Open -> NotchSound.Close
+    from == Look.Hidden && to == Look.Compact -> NotchSound.Peek
+    else -> null
+}
+
 /**
- * A notch companion: the StudioShare face living in the MacBook's notch, after Coucou's Mochi.
+ * A notch companion: the StudioShare face living in the notch, laid out after Coucou's island.
  *
- * At rest it is the notch with a wide ear either side: the face in the outer corner of the left one,
- * watching the cursor, and in the right one a progress ring while something runs or an amber pulse
- * while something needs you. No words. When something happens the notch opens downward into a card
- * that is wide and short — one row for a line like "You're signed in", two for a message with a
- * detail and buttons beside it — so it never covers more of the screen than a strip under the menu
- * bar. The card is washed with the mood's colour, the face slides in from the ear, and the motion is
- * the Dynamic Island's: a soft spring open, a firmer one closed. Hovering keeps whatever is showing;
- * clicking the resting island opens it.
+ * Hidden, it is exactly the notch (a small tab at the top centre on a screen without one). Hovering
+ * grows it into compact — 80 pt more each side, the face in the left one watching the cursor and a
+ * progress ring or an amber pulse in the right — and clicking opens it: 640 wide, a header row with
+ * the mute toggle, and one card washed with the mood's colour. Alerts and warnings open it on their
+ * own, each with its own sound; it folds back to compact 15 s after the mouse leaves, and hides 60 s
+ * after that.
  *
  * It reads [MascotAgent.state] and nothing else: [MascotAgent.moment] for what happens in the app
  * (with the spec's default line, or your own), [MascotAgent.reportProgress] for tasks,
@@ -301,17 +331,20 @@ fun StudioFaceNotchCompanion(
     visible: Boolean,
     onClose: () -> Unit,
     onOpenMainApp: () -> Unit,
+    sounds: NotchSoundPlayer = remember { NotchSoundPlayer() },
 ) {
     if (!visible) return
     val state by agent.state.collectAsState()
     val notch = remember { MacNotch.geometry() }
 
     var opened by remember { mutableStateOf(false) }
+    var peeking by remember { mutableStateOf(false) }
     var inIsland by remember { mutableStateOf(false) }
     var overFace by remember { mutableStateOf(false) }
     var love by remember { mutableStateOf(false) }
+    var muted by remember { mutableStateOf(!sounds.enabled) }
 
-    // a task that has just started peeks out with its progress
+    // a task that has just started opens with its progress
     val activeTask = (state as? MascotAgentState.Working)?.activeTask?.id
     var peekTask by remember { mutableStateOf<String?>(null) }
     var seenTasks by remember { mutableStateOf(emptySet<String>()) }
@@ -331,12 +364,18 @@ fun StudioFaceNotchCompanion(
         if (live != null) shown = live
         else if (shown != null && !inIsland) shown = null
     }
-    // a click-opened island folds back once the mouse has been away a moment
-    LaunchedEffect(opened, inIsland) {
-        if (opened && !inIsland) {
+    // hovering peeks; leaving folds an open island back after a while, and hides compact after longer
+    LaunchedEffect(inIsland) {
+        if (inIsland) {
+            peeking = true
+            return@LaunchedEffect
+        }
+        if (opened) {
             delay(COLLAPSE_AFTER_LEAVE_MS)
             opened = false
         }
+        delay(HIDE_AFTER_LEAVE_MS)
+        peeking = false
     }
     // a face the mouse rests on blushes, now and then
     var lastLove by remember { mutableStateOf(0L) }
@@ -350,6 +389,13 @@ fun StudioFaceNotchCompanion(
             delay(LOVE_HOLD_MS)
             love = false
         }
+    }
+
+    val look = lookOf(shown, state, peeking)
+    var lastLook by remember { mutableStateOf(Look.Hidden) }
+    LaunchedEffect(look) {
+        soundFor(lastLook, look, shown)?.let(sounds::play)
+        lastLook = look
     }
 
     val stage = stageSize(notch)
@@ -398,15 +444,22 @@ fun StudioFaceNotchCompanion(
         }
 
         val faceScale by animateFloatAsState(if (overFace) 1.08f else 1f, spring(0.6f, Spring.StiffnessMedium))
-        CompositionLocalProvider(LocalNotchWindow provides window) {
+        CompositionLocalProvider(LocalNotchWindow provides window, LocalNotchSounds provides sounds) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
                 Island(
                     state = state,
                     card = shown,
+                    look = look,
                     notch = notch,
                     mood = if (love) "shy" else shown?.mood ?: state.currentMood,
                     faceScale = faceScale,
                     metrics = metrics,
+                    muted = muted,
+                    onToggleMute = {
+                        muted = !muted
+                        sounds.enabled = !muted
+                        if (!muted) sounds.play(NotchSound.Tap)
+                    },
                     onRestClick = { opened = true },
                     onFaceClick = if (shown != null) onOpenMainApp else ({ opened = true }),
                 )
@@ -432,48 +485,29 @@ internal class IslandMetrics {
 internal fun Island(
     state: MascotAgentState,
     card: NotchCard?,
+    look: Look,
     notch: NotchGeometry,
     mood: String,
     animate: Boolean = true,
     faceScale: Float = 1f,
     metrics: IslandMetrics? = null,
+    muted: Boolean = false,
+    onToggleMute: () -> Unit = {},
     onRestClick: () -> Unit = {},
     onFaceClick: () -> Unit = {},
 ) {
-    val density = LocalDensity.current
-    val band = bandHeight(notch)
-    val rest = restSize(notch)
-    val look = lookOf(card)
-
-    // measured size of the card that is showing
-    var cardSize by remember { mutableStateOf(DpSize.Zero) }
-    var cardKey by remember { mutableStateOf<String?>(null) }
-    val measured = when (look) {
-        Look.Rest -> true
-        Look.Card -> cardSize != DpSize.Zero && cardKey == card?.key
-    }
-    // until it is measured, the new look waits where it is (a frame)
-    var settled by remember { mutableStateOf<Pair<Look, NotchCard?>>(Look.Rest to null) }
-    SideEffect { if (measured && settled != (look to card)) settled = look to card }
-    val (shownLook, shownCard) = settled
-
-    val target = when (shownLook) {
-        Look.Rest -> rest
-        Look.Card -> openSize(notch, cardSize)
-    }
-    val opening = shownLook != Look.Rest
-    val spec: AnimationSpec<Dp> = if (!animate) snap() else if (opening) openSpring else closeSpring
+    val target = islandSize(notch, look, card)
+    val open = look == Look.Open
+    val spec: AnimationSpec<Dp> = if (!animate) snap() else if (open) openSpring else closeTween
     val islandW by animateDpAsState(target.width, spec)
     val islandH by animateDpAsState(target.height, spec)
-    val corner by animateDpAsState(
-        if (shownLook == Look.Card) OPEN_CORNER else REST_CORNER.coerceAtMost(band / 2), spec,
-    )
+    val corner by animateDpAsState(if (open) OPEN_CORNER else REST_CORNER.coerceAtMost(target.height / 2), spec)
 
-    val place = facePlace(notch, shownLook, shownCard, target, cardSize)
-    val faceDx by animateDpAsState(place.dx, spec)
+    val place = facePlace(notch, look, card)
+    val faceX by animateDpAsState(place.x, spec)
     val faceY by animateDpAsState(place.y, spec)
     val faceSize by animateDpAsState(place.size, spec)
-    val faceX = islandW / 2 + faceDx
+    val faceAlpha by animateFloatAsState(place.alpha, if (animate) tween(250) else snap())
     metrics?.let {
         it.width = islandW.value
         it.height = islandH.value
@@ -488,81 +522,81 @@ internal fun Island(
             .clip(RoundedCornerShape(bottomStart = corner, bottomEnd = corner))
             .background(INK)
             .then(
-                if (opening) Modifier
+                if (open) Modifier
                 else Modifier.clickable(remember { MutableInteractionSource() }, null, onClick = onRestClick),
             ),
     ) {
-        // at rest: a mark in the right ear, no words
-        Layer(visible = shownLook == Look.Rest, animate = animate) {
+        // compact: a mark on the right, no words
+        Layer(visible = look == Look.Compact, animate = animate, keep = Unit) {
             Box(
-                Modifier.align(Alignment.TopEnd).size(EAR, band).padding(end = REST_MARK_TRAIL),
-                contentAlignment = Alignment.CenterEnd,
-            ) { EarMark(state) }
+                Modifier.align(Alignment.TopEnd).offset(x = -COMPACT_INSET + 14.dp).size(28.dp, bandHeight(notch)),
+                contentAlignment = Alignment.Center,
+            ) { CompactMark(state) }
         }
-        // the card, laid out at its own size and centred under the band; the island's clip reveals it
-        Layer(visible = shownLook == Look.Card, animate = animate, keepLast = card.takeIf { look == Look.Card }) { c ->
+        // open: the header row and the card under it, laid out at the open size; the island's clip reveals them
+        Layer(visible = open, animate = animate, keep = card.takeIf { open }) { c ->
             if (c != null) {
-                Box(
-                    Modifier
-                        .align(Alignment.TopCenter)
-                        .offset(y = band)
-                        .wrapContentSize(Alignment.TopCenter, unbounded = true)
-                        .onSizeChanged {
-                            cardKey = c.key
-                            cardSize = with(density) { DpSize(it.width.toDp(), it.height.toDp()) }
-                        },
-                ) { CardView(c, minWidth = rest.width - PAD * 2) }
+                val size = islandSize(notch, Look.Open, c)
+                Box(Modifier.align(Alignment.TopCenter).size(size)) {
+                    Header(c, muted, onToggleMute)
+                    CardView(
+                        c,
+                        Modifier
+                            .padding(start = CARD_SIDE_PAD, end = CARD_SIDE_PAD, top = CARD_TOP, bottom = CARD_BOTTOM_PAD)
+                            .fillMaxSize(),
+                    )
+                }
             }
         }
-        // one face for every look, so it glides between the ear and the card
+        // one face for every look, so it glides between compact and the card
         val tone = toneOf(mood)
         Box(
             Modifier
                 .offset(faceX - faceSize / 2, faceY - faceSize / 2)
                 .size(faceSize)
-                .graphicsLayer { scaleX = faceScale; scaleY = faceScale },
+                .graphicsLayer { scaleX = faceScale; scaleY = faceScale; alpha = faceAlpha },
         ) {
             Face(state, mood, animate, onFaceClick)
-            if (tone != Tone.Calm) StatusBadge(tone, faceSize)
+            if (tone != Tone.Calm && look != Look.Hidden) StatusBadge(tone, faceSize)
         }
     }
 }
 
 /**
- * A layer of the island that fades in like the Dynamic Island's content — out of a soft blur,
- * growing the last few percent — after the island has started to open, and out quickly before it
- * closes. While fading out it keeps showing [keepLast]'s last value; while [keepLast] is set but
- * not yet [visible], it is laid out unseen so it can be measured.
+ * A layer of the island that comes in like Coucou's views — after the island has started to open,
+ * a spring from 97 % scale and transparent — and goes out quickly before it closes. While going out
+ * it keeps showing [keep]'s last non-null value.
  */
 @Composable
-private fun BoxScope.Layer(
+private fun <T> BoxScope.Layer(
     visible: Boolean,
     animate: Boolean,
-    keepLast: NotchCard? = null,
-    content: @Composable BoxScope.(NotchCard?) -> Unit,
+    keep: T?,
+    content: @Composable BoxScope.(T?) -> Unit,
 ) {
-    var last by remember { mutableStateOf<NotchCard?>(null) }
-    if (keepLast != null) last = keepLast
-    val t by animateFloatAsState(
-        if (visible) 1f else 0f,
+    var last by remember { mutableStateOf<T?>(null) }
+    if (keep != null) last = keep
+    val t = remember { Animatable(if (visible) 1f else 0f) }
+    LaunchedEffect(visible, animate) {
         when {
-            !animate -> snap()
-            visible -> tween(260, delayMillis = 120)
-            else -> tween(120)
-        },
-    )
-    // a layer about to show is still laid out (unseen) so its size is known before the island moves
-    if (t < 0.01f && keepLast == null) return
+            !animate -> t.snapTo(if (visible) 1f else 0f)
+            visible -> {
+                delay(160)
+                t.animateTo(1f, spring(dampingRatio = 0.8f, stiffness = 247f))
+            }
+            else -> t.animateTo(0f, tween(160, easing = easeIn))
+        }
+    }
+    if (t.value < 0.01f) return
     Box(
         Modifier
             .matchParentSize()
             .graphicsLayer {
-                alpha = t
-                val s = 0.94f + 0.06f * t
+                alpha = t.value.coerceIn(0f, 1f)
+                val s = 0.97f + 0.03f * t.value
                 scaleX = s; scaleY = s
-                transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 0f)
-            }
-            .then(if (t < 0.99f) Modifier.blur((6 * (1 - t)).dp) else Modifier),
+                transformOrigin = TransformOrigin(0.5f, 0f)
+            },
     ) { content(last) }
 }
 
@@ -570,45 +604,57 @@ private fun BoxScope.Layer(
 
 internal fun bandHeight(notch: NotchGeometry): Dp = if (notch.hasNotch) notch.bandHeight else FLAT_BAND
 
-/** The gap the island leaves for the camera: the notch and a little slack, or nothing without one. */
-internal fun notchGap(notch: NotchGeometry): Dp = if (notch.hasNotch) notch.notchWidth + NOTCH_SLACK * 2 else 0.dp
+/** Hidden: exactly the notch, or a small tab without one. */
+internal fun hiddenSize(notch: NotchGeometry): DpSize =
+    if (notch.hasNotch) DpSize(notch.notchWidth, notch.bandHeight) else DpSize(FLAT_W, FLAT_BAND)
 
-/** The island at rest: the notch with an ear each side (just the two ears without one). */
-internal fun restSize(notch: NotchGeometry): DpSize = DpSize(notchGap(notch) + EAR * 2, bandHeight(notch))
+/** Compact: the hidden island with room for the face on the left and a mark on the right. */
+internal fun compactSize(notch: NotchGeometry): DpSize =
+    hiddenSize(notch).let { DpSize(it.width + COMPACT_GROW * 2, it.height) }
 
-/** The island open around a card of [card] size: the notch band, the card, padding. */
-internal fun openSize(notch: NotchGeometry, card: DpSize): DpSize =
-    DpSize(maxOf(card.width + PAD * 2, restSize(notch).width), bandHeight(notch) + card.height + PAD)
+/** Open: 640 wide, and tall enough for the header and the card. */
+internal fun openSize(card: NotchCard?): DpSize = DpSize(OPEN_W, if (card is NotchCard.Progress) OPEN_PROGRESS_H else OPEN_H)
+
+internal fun islandSize(notch: NotchGeometry, look: Look, card: NotchCard?): DpSize = when (look) {
+    Look.Hidden -> hiddenSize(notch)
+    Look.Compact -> compactSize(notch)
+    Look.Open -> openSize(card)
+}
 
 /** The fixed window the island lives in: room for the widest, tallest island. */
 internal fun stageSize(notch: NotchGeometry): DpSize = DpSize(
-    maxOf(ISLAND_MAX_W, restSize(notch).width) + WINDOW_MARGIN * 2,
-    bandHeight(notch) + STAGE_CARD_H + PAD + WINDOW_MARGIN,
+    maxOf(OPEN_W, compactSize(notch).width) + WINDOW_MARGIN * 2,
+    OPEN_PROGRESS_H + WINDOW_MARGIN,
 )
 
-/** Where the face sits: [dx] from the island's centre line, [y] from its top. */
-internal data class FacePlace(val dx: Dp, val y: Dp, val size: Dp)
+/** Where the face sits, its centre [x] and [y] from the island's top-left. */
+internal data class FacePlace(val x: Dp, val y: Dp, val size: Dp, val alpha: Float = 1f)
 
-internal fun facePlace(notch: NotchGeometry, look: Look, card: NotchCard?, island: DpSize, cardSize: DpSize): FacePlace {
+/** The face's box in compact (and in the flat tab): as tall as the band allows. */
+private fun bandFace(notch: NotchGeometry) = (bandHeight(notch) - 2.dp).coerceAtMost(34.dp)
+
+internal fun facePlace(notch: NotchGeometry, look: Look, card: NotchCard?): FacePlace {
     val band = bandHeight(notch)
     return when {
-        look == Look.Rest || card == null -> {
-            // in the island's outer left corner, well clear of the camera, as tall as the band allows
-            val size = (band - 2.dp).coerceAtMost(40.dp)
-            FacePlace(-restSize(notch).width / 2 + REST_FACE_LEAD + size / 2, band / 2, size)
-        }
+        // behind the camera there's nothing to see: shrink it away where compact will grow it from
+        look == Look.Hidden && notch.hasNotch -> FacePlace(COMPACT_INSET + 6.dp, band / 2, 6.dp, alpha = 0f)
+        look == Look.Hidden -> FacePlace(FLAT_W / 2, band / 2, bandFace(notch))
+        look == Look.Compact || card == null -> FacePlace(COMPACT_INSET, band / 2, bandFace(notch))
         card is NotchCard.Progress -> {
-            // riding the bar's leading edge, like Coucou's Mochi on an upload
-            val barW = cardSize.width - FACE_LEAD * 2
-            val p = if (card.task.isIndeterminate) 0.5f else card.task.progress.coerceIn(0f, 1f)
-            FacePlace(-cardSize.width / 2 + FACE_LEAD + barW * p, band + cardSize.height - BAR_BOTTOM - BAR_H / 2, FACE_RIDER)
+            // riding the bar's leading edge
+            val barW = OPEN_W - CARD_SIDE_PAD * 2 - BAR_PAD * 2
+            val p = if (card.task.isIndeterminate) 0.5f else easeOutProgress(card.task.progress.coerceIn(0f, 1f))
+            FacePlace(CARD_SIDE_PAD + BAR_PAD + barW * p, CARD_TOP + BAR_Y + BAR_H / 2, FACE_RIDER)
         }
         else -> {
-            val size = if ((card as NotchCard.Message).isNote) FACE_NOTE else FACE_CARD
-            FacePlace(-cardSize.width / 2 + FACE_LEAD + size / 2, band + cardSize.height / 2, size)
+            val cardH = openSize(card).height - CARD_TOP - CARD_BOTTOM_PAD
+            FacePlace(MESSAGE_FACE_X, CARD_TOP + cardH / 2, MESSAGE_FACE)
         }
     }
 }
+
+/** How full the bar draws for [p]: eased out, so the start of an upload reads as progress. */
+internal fun easeOutProgress(p: Float) = p * (2 - p)
 
 /** Top centre of the screen, flush with its top edge: over the menu bar, and around the notch. */
 private fun topCentre(notch: NotchGeometry, width: Dp) = WindowPosition(
@@ -616,24 +662,74 @@ private fun topCentre(notch: NotchGeometry, width: Dp) = WindowPosition(
     y = notch.screenY.dp,
 )
 
+// ---- header ---------------------------------------------------------------------------------
+
+/** The open island's top row: where it's from on the left, the mute toggle on the right. */
+@Composable
+private fun BoxScope.Header(card: NotchCard, muted: Boolean, onToggleMute: () -> Unit) {
+    Row(
+        Modifier.align(Alignment.TopStart).padding(top = HEADER_TOP).height(HEADER_H).fillMaxWidth()
+            .padding(start = 18.dp, end = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        val tone = toneOf(card.mood)
+        Box(Modifier.size(6.dp).clip(CircleShape).background(if (tone == Tone.Calm) MUTED else tone.color))
+        Spacer(Modifier.width(7.dp))
+        Text("StudioShare", color = MUTED, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+        Spacer(Modifier.weight(1f))
+        SpeakerToggle(muted, onToggleMute)
+    }
+}
+
+@Composable
+private fun SpeakerToggle(muted: Boolean, onClick: () -> Unit) {
+    Canvas(
+        Modifier.size(22.dp).clip(CircleShape)
+            .clickable(remember { MutableInteractionSource() }, null, onClick = onClick)
+            .padding(4.dp),
+    ) {
+        val s = size.minDimension
+        val body = Path().apply {
+            moveTo(s * 0.08f, s * 0.36f); lineTo(s * 0.28f, s * 0.36f); lineTo(s * 0.52f, s * 0.14f)
+            lineTo(s * 0.52f, s * 0.86f); lineTo(s * 0.28f, s * 0.64f); lineTo(s * 0.08f, s * 0.64f); close()
+        }
+        drawPath(body, MUTED)
+        val w = 1.4.dp.toPx()
+        if (muted) {
+            drawLine(MUTED, Offset(s * 0.66f, s * 0.36f), Offset(s * 0.94f, s * 0.64f), w, StrokeCap.Round)
+            drawLine(MUTED, Offset(s * 0.94f, s * 0.36f), Offset(s * 0.66f, s * 0.64f), w, StrokeCap.Round)
+        } else {
+            for (r in listOf(0.2f, 0.36f)) {
+                drawArc(
+                    MUTED, -45f, 90f, false,
+                    topLeft = Offset(s * 0.5f - s * r, s * 0.5f - s * r), size = Size(s * r * 2, s * r * 2),
+                    style = Stroke(w, cap = StrokeCap.Round),
+                )
+            }
+        }
+    }
+}
+
 // ---- card -----------------------------------------------------------------------------------
 
-/** The card: wide and short, washed from below with its mood's colour. */
+/** The card: a lifted panel washed from below with its mood's colour. */
 @Composable
-internal fun CardView(card: NotchCard, minWidth: Dp) {
-    val tone = toneOf(card.mood)
+internal fun CardView(card: NotchCard, modifier: Modifier = Modifier) {
+    val tone = if (card is NotchCard.Progress) Tone.Good else toneOf(card.mood)
+    val wash = if (card is NotchCard.Progress) {
+        if (!card.task.isIndeterminate && card.task.progress >= 1f) 0.28f else 0.14f
+    } else tone.wash
     val shape = RoundedCornerShape(CARD_CORNER)
     Box(
-        Modifier
-            .widthIn(min = minWidth, max = ISLAND_MAX_W - PAD * 2)
+        modifier
             .clip(shape)
             .background(CARD)
             .drawBehind {
                 drawRect(
                     Brush.radialGradient(
-                        0f to tone.color.copy(alpha = tone.wash), 0.7f to Color.Transparent,
-                        center = Offset(size.width / 2, size.height * 1.5f),
-                        radius = 300.dp.toPx(),
+                        0f to tone.color.copy(alpha = wash), 0.7f to Color.Transparent,
+                        center = Offset(size.width / 2, size.height * 1.3f),
+                        radius = 280.dp.toPx(),
                     ),
                 )
             }
@@ -647,106 +743,131 @@ internal fun CardView(card: NotchCard, minWidth: Dp) {
 }
 
 /**
- * Face, then the words, then the buttons, side by side so the card grows wide and stays short: a
- * note is one row ("● Sign in  You're signed in."), a message two (that, then its detail).
+ * The face on the left (drawn by the island, over this card), then a column: who it's from, the
+ * title, its detail, and the buttons in a row under them.
  */
 @Composable
-private fun MessageCard(card: NotchCard.Message) {
-    val face = if (card.isNote) FACE_NOTE else FACE_CARD
-    val vertical = if (card.isNote) 8.dp else 10.dp
-    Row(Modifier.padding(end = 14.dp, top = vertical, bottom = vertical), verticalAlignment = Alignment.CenterVertically) {
-        // the face floats over this slot (one face is drawn for every look)
-        Spacer(Modifier.width(FACE_LEAD + face + 12.dp).height(face))
-        Column(Modifier.widthIn(max = CARD_TEXT_MAX), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+private fun BoxScope.MessageCard(card: NotchCard.Message) {
+    Column(
+        Modifier.align(Alignment.CenterStart).padding(start = MESSAGE_LEAD, end = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(5.dp),
+    ) {
+        if (card.label != null) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                if (card.label != null) {
-                    val tone = toneOf(card.mood)
-                    Box(Modifier.size(7.dp).clip(CircleShape).background(if (tone == Tone.Calm) MUTED else tone.color))
+                val tone = toneOf(card.mood)
+                Box(Modifier.size(8.dp).clip(CircleShape).background(if (tone == Tone.Calm) MUTED else tone.color))
+                Spacer(Modifier.width(7.dp))
+                Text(card.label, color = TEXT, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                if (card.counter != null) {
                     Spacer(Modifier.width(7.dp))
-                    Text(card.label, color = MUTED, fontSize = 12.sp, fontWeight = FontWeight.Medium, maxLines = 1)
-                    Spacer(Modifier.width(10.dp))
+                    Text(card.counter, color = MUTED, fontSize = 12.sp, maxLines = 1)
                 }
-                Text(
-                    card.title, color = TEXT, fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold,
-                    maxLines = 1, overflow = TextOverflow.Ellipsis,
-                )
-            }
-            if (card.detail != null) {
-                Text(
-                    card.detail,
-                    color = when (card.detailTone) { Tone.Bad -> BAD_TEXT; Tone.Warn -> WARN_TEXT; else -> MUTED },
-                    fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                )
             }
         }
+        Text(
+            card.title, color = TEXT, fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
+            maxLines = 1, overflow = TextOverflow.Ellipsis,
+        )
+        if (card.detail != null) {
+            Text(
+                card.detail,
+                color = when (card.detailTone) { Tone.Bad -> BAD_TEXT; Tone.Warn -> WARN_TEXT; else -> MUTED },
+                fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+            )
+        }
         if (card.buttons.isNotEmpty()) {
-            Spacer(Modifier.width(16.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { card.buttons.forEach { PillButton(it) } }
+            Row(Modifier.padding(top = 3.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                card.buttons.forEach { PillButton(it) }
+            }
         }
     }
 }
 
 @Composable
-private fun ProgressCard(card: NotchCard.Progress) {
+private fun BoxScope.ProgressCard(card: NotchCard.Progress) {
     val task = card.task
-    Column(Modifier.width(PROGRESS_W).padding(start = FACE_LEAD, end = FACE_LEAD, top = 10.dp, bottom = BAR_BOTTOM)) {
+    val done = !task.isIndeterminate && task.progress >= 1f
+    Column(Modifier.fillMaxWidth().padding(start = BAR_PAD, end = BAR_PAD, top = 18.dp)) {
+        Text(
+            task.title, color = TEXT, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Spacer(Modifier.height(8.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                task.title, color = TEXT, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1,
-                overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f),
-            )
-            Spacer(Modifier.width(12.dp))
-            val right = listOfNotNull(
+            val left = listOfNotNull(
                 task.detail.takeIf { it.isNotBlank() },
-                task.percentText.takeUnless { task.isIndeterminate },
                 "+${card.queued} more".takeIf { card.queued > 0 },
             ).joinToString("  ·  ")
-            Text(right, color = MUTED, fontSize = 12.sp, maxLines = 1)
-        }
-        Spacer(Modifier.height(12.dp))
-        val fill by animateFloatAsState(
-            task.progress.coerceIn(0f, 1f), spring(dampingRatio = 0.9f, stiffness = Spring.StiffnessLow),
-        )
-        Box(Modifier.fillMaxWidth().height(BAR_H).clip(CircleShape).background(TRACK)) {
-            if (task.isIndeterminate) {
-                val t by rememberInfiniteTransition(label = "bar").animateFloat(
-                    0f, 1f, infiniteRepeatable(tween(1_400, easing = LinearEasing), RepeatMode.Reverse), label = "sweep",
-                )
-                Box(
-                    Modifier.fillMaxWidth(0.3f + 0.4f * t).fillMaxHeight().clip(CircleShape)
-                        .background(Brush.horizontalGradient(listOf(FILL_START.copy(alpha = 0f), FILL_END))),
-                )
-            } else {
-                Box(
-                    Modifier.fillMaxWidth(fill).fillMaxHeight().clip(CircleShape)
-                        .background(Brush.horizontalGradient(listOf(FILL_START, FILL_END))),
+            Text(
+                left, color = BAR_LABEL, fontSize = 12.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            if (!task.isIndeterminate) {
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    if (done) "✓ Done" else task.percentText,
+                    color = if (done) FILL_END else BAR_LABEL, fontSize = 12.5.sp,
+                    fontWeight = if (done) FontWeight.SemiBold else FontWeight.Normal,
+                    fontFamily = if (done) FontFamily.Default else FontFamily.Monospace, maxLines = 1,
                 )
             }
+        }
+    }
+    // the bar, at a fixed height so the face riding it knows where it is
+    val fill by animateFloatAsState(
+        task.progress.coerceIn(0f, 1f), spring(dampingRatio = 0.9f, stiffness = Spring.StiffnessLow),
+    )
+    Box(
+        Modifier.align(Alignment.TopStart).offset(y = BAR_Y).padding(horizontal = BAR_PAD)
+            .fillMaxWidth().height(BAR_H).clip(CircleShape).background(TRACK),
+    ) {
+        if (task.isIndeterminate) {
+            val t by rememberInfiniteTransition(label = "bar").animateFloat(
+                0f, 1f, infiniteRepeatable(tween(1_400, easing = LinearEasing), RepeatMode.Reverse), label = "sweep",
+            )
+            Box(
+                Modifier.fillMaxWidth(0.3f + 0.4f * t).fillMaxHeight().clip(CircleShape)
+                    .background(Brush.horizontalGradient(listOf(FILL_START.copy(alpha = 0f), FILL_END))),
+            )
+        } else {
+            val shown = easeOutProgress(fill)
+            Box(
+                Modifier.fillMaxWidth(shown).fillMaxHeight().clip(CircleShape)
+                    .background(Brush.horizontalGradient(listOf(FILL_START, FILL_END)))
+                    .drawBehind {
+                        drawOval(
+                            FILL_GLOW.copy(alpha = 0.45f),
+                            topLeft = Offset(size.width - 14.dp.toPx(), size.height / 2 - 6.dp.toPx()),
+                            size = Size(28.dp.toPx(), 12.dp.toPx()),
+                        )
+                    },
+            )
         }
     }
 }
 
 @Composable
 private fun PillButton(button: CardButton) {
+    val sounds = LocalNotchSounds.current
     Box(
         Modifier
             .clip(CircleShape)
             .background(if (button.primary) TEXT else Color.White.copy(alpha = 0.09f))
-            .clickable(onClick = button.onClick)
-            .padding(horizontal = 12.dp, vertical = 5.dp),
+            .clickable { sounds?.play(NotchSound.Tap); button.onClick() }
+            .padding(horizontal = 13.dp, vertical = 7.dp),
     ) {
         Text(
             button.label, color = if (button.primary) Color(0xFF0B0C0E) else Color(0xFFF1F2F4),
-            fontSize = 12.sp, fontWeight = FontWeight.Medium, maxLines = 1,
+            fontSize = 12.5.sp, fontWeight = FontWeight.Medium, maxLines = 1,
         )
     }
 }
 
 // ---- small marks ----------------------------------------------------------------------------
 
-/** What the right ear shows at rest: a progress ring while working, a soft amber pulse for a warning. */
+/** What compact shows on the right: a progress ring while working, a soft amber pulse for a warning. */
 @Composable
-internal fun EarMark(state: MascotAgentState) {
+internal fun CompactMark(state: MascotAgentState) {
     when (state) {
         is MascotAgentState.Working -> Ring(state.activeTask)
         is MascotAgentState.Warning -> {
@@ -755,7 +876,7 @@ internal fun EarMark(state: MascotAgentState) {
             )
             Box(Modifier.size(9.dp).graphicsLayer { alpha = pulse }.clip(CircleShape).background(Tone.Warn.color))
         }
-        else -> Unit
+        else -> Box(Modifier.size(6.dp).clip(CircleShape).background(DIM))
     }
 }
 
@@ -774,7 +895,7 @@ private fun Ring(task: AgentTask) {
     }
 }
 
-/** A dot at the face's top-left in its mood's colour, ringed in black (Coucou's status badge). */
+/** A dot at the face's top-left in its mood's colour, ringed in black. */
 @Composable
 private fun StatusBadge(tone: Tone, face: Dp) {
     val d = maxOf(6.dp, face * 0.2f)

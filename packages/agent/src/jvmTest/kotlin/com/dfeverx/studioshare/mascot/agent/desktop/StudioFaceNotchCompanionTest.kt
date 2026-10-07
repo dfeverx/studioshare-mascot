@@ -5,22 +5,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ImageComposeScene
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -31,7 +21,6 @@ import com.dfeverx.studioshare.mascot.agent.AgentTask
 import com.dfeverx.studioshare.mascot.agent.AgentWarning
 import com.dfeverx.studioshare.mascot.agent.MascotAgent
 import com.dfeverx.studioshare.mascot.agent.MascotAgentState
-import com.dfeverx.studioshare.mascot.face.StudioFace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.skia.EncodedImageFormat
@@ -43,11 +32,13 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * The notch companion: what it opens to say, how big, and where the face sits — plus a render of
- * the island in each state to `build/studio-face-notch/states.png`, for eyeballing without a window.
+ * The notch companion: what it opens to say, how big, where the face sits and what it sounds like —
+ * plus a render of the island in each state to `build/studio-face-notch/states.png`, for eyeballing
+ * without a window.
  */
 class StudioFaceNotchCompanionTest {
     private val notched = NotchGeometry(0, 0, 1512, 185.dp, 38.dp)
+    private val flat = NotchGeometry(0, 0, 1920, 0.dp, 0.dp)
     private val upload = MascotAgentState.Working(AgentTask("u", "Uploading Wedding — Ava & Sam", "128 of 300 photos", 0.43f))
     private val warning = MascotAgentState.Warning(
         AgentWarning("w", "Storage almost full", "92% of your studio's space is used.", actionLabel = "Manage", onAction = {}, label = "Storage"),
@@ -71,18 +62,43 @@ class StudioFaceNotchCompanionTest {
         assertTrue(note.isNote)
         assertEquals("Sign in", note.label)
         val warn = assertIs<NotchCard.Message>(liveCard(null, warning, opened = false, peeks = false))
-        assertEquals(listOf("Manage", "Dismiss"), warn.buttons.map { it.label })
+        // secondary first, primary last, like an approval's Deny · Allow
+        assertEquals(listOf("Dismiss", "Manage"), warn.buttons.map { it.label })
         assertEquals(Tone.Warn, warn.detailTone)
         assertIs<NotchCard.Progress>(liveCard(null, upload, opened = false, peeks = true))
         assertIs<NotchCard.Progress>(liveCard(null, upload, opened = true, peeks = false))
         assertIs<NotchCard.Message>(liveCard(null, MascotAgentState.Idle(), opened = true, peeks = false))
     }
 
-    @Test fun everythingOpensDownIntoACard() {
-        assertEquals(Look.Card, lookOf(liveCard(null, signedIn, false, false)))
-        assertEquals(Look.Card, lookOf(liveCard(null, upload, opened = false, peeks = true)))
-        assertEquals(Look.Card, lookOf(liveCard(null, warning, false, false)))
-        assertEquals(Look.Rest, lookOf(null))
+    @Test fun cardsOpenTheIslandAndWorkKeepsItCompact() {
+        val idle = MascotAgentState.Idle()
+        assertEquals(Look.Open, lookOf(liveCard(null, signedIn, false, false), signedIn, peeking = false))
+        assertEquals(Look.Open, lookOf(liveCard(null, warning, false, false), warning, peeking = false))
+        assertEquals(Look.Compact, lookOf(null, upload, peeking = false))
+        assertEquals(Look.Compact, lookOf(null, idle, peeking = true))
+        assertEquals(Look.Hidden, lookOf(null, idle, peeking = false))
+    }
+
+    @Test fun eachChangeOfLookHasItsSound() {
+        val warn = liveCard(null, warning, false, false)
+        val booked = liveCard(null, booking, false, false)
+        val failed = liveCard(null, MascotAgentState.Alert(AgentAlert("f", "Upload failed", "", mood = "oops")), false, false)
+        assertEquals(NotchSound.Peek, soundFor(Look.Hidden, Look.Compact, null))
+        assertEquals(NotchSound.Attention, soundFor(Look.Compact, Look.Open, warn))
+        assertEquals(NotchSound.Done, soundFor(Look.Hidden, Look.Open, booked))
+        assertEquals(NotchSound.Error, soundFor(Look.Hidden, Look.Open, failed))
+        assertEquals(NotchSound.Open, soundFor(Look.Compact, Look.Open, liveCard(null, upload, opened = true, peeks = false)))
+        assertEquals(NotchSound.Close, soundFor(Look.Open, Look.Compact, null))
+        assertNull(soundFor(Look.Compact, Look.Hidden, null))
+    }
+
+    @Test fun soundsAreShortAndSynthesized() {
+        NotchSound.entries.forEach { sound ->
+            val pcm = NotchSoundPlayer.render(sound)
+            val seconds = pcm.size / 2.0 / NotchSoundPlayer.RATE
+            assertTrue(seconds in 0.05..0.6, "$sound lasts $seconds s")
+            assertTrue(pcm.any { it != 0.toByte() }, "$sound is silent")
+        }
     }
 
     @Test fun cardButtonsAreTheSameButtonWhateverTheirCallback() {
@@ -114,72 +130,69 @@ class StudioFaceNotchCompanionTest {
         assertEquals(Tone.Calm, toneOf("idle"))
     }
 
-    @Test fun islandIsWiderThanTheNotchWithRoomForTheFace() {
-        val rest = restSize(notched)
-        // the notch, a little slack either side of it, and a wide ear each side
-        assertEquals(185.dp + NOTCH_SLACK * 2 + EAR * 2, rest.width)
-        assertEquals(38.dp, rest.height)
-        // the face sits in the outer left corner, entirely clear of the notch
-        val face = facePlace(notched, Look.Rest, null, rest, DpSize.Zero)
-        val faceRight = rest.width / 2 + face.dx + face.size / 2
-        val notchLeft = (rest.width - 185.dp) / 2
-        assertTrue(faceRight < notchLeft - 20.dp, "face must sit well left of the notch")
-        assertTrue(rest.width / 2 + face.dx - face.size / 2 <= 8.dp, "face hugs the left corner")
-        // and fills the band without spilling out of it
-        assertTrue(face.size >= 34.dp && face.size <= notched.bandHeight)
-        // no notch: just the two ears
-        assertEquals(EAR * 2, restSize(notched.copy(notchWidth = 0.dp)).width)
-    }
-
-    @Test fun openIslandIsWideAndShort() {
-        // a card adds only its own height under the band, and never shrinks the island
-        assertEquals(DpSize(560.dp, 38.dp + 48.dp + 10.dp), openSize(notched, DpSize(540.dp, 48.dp)))
-        assertEquals(restSize(notched).width, openSize(notched, DpSize(100.dp, 48.dp)).width)
+    @Test fun islandHidesInTheNotchAndGrowsEachSide() {
+        // hidden: exactly the notch; compact: 80 more each side; open: 640 wide
+        assertEquals(DpSize(185.dp, 38.dp), islandSize(notched, Look.Hidden, null))
+        assertEquals(DpSize(185.dp + COMPACT_GROW * 2, 38.dp), islandSize(notched, Look.Compact, null))
+        assertEquals(DpSize(OPEN_W, OPEN_H), islandSize(notched, Look.Open, liveCard(null, booking, false, false)))
+        assertEquals(OPEN_PROGRESS_H, islandSize(notched, Look.Open, liveCard(null, upload, true, false)).height)
+        // without a notch, hidden is a small tab
+        assertTrue(islandSize(flat, Look.Hidden, null).width < 100.dp)
         // the whole stage stays a strip under the menu bar
-        assertTrue(stageSize(notched).height < 170.dp)
+        assertTrue(stageSize(notched).height < 200.dp)
     }
 
-    @Test fun faceGoesFromTheCornerIntoTheCardAndRidesTheBar() {
-        val rest = facePlace(notched, Look.Rest, null, restSize(notched), DpSize.Zero)
-        val card = liveCard(null, booking, false, false)
-        val inCard = facePlace(notched, Look.Card, card, DpSize(560.dp, 110.dp), DpSize(540.dp, 58.dp))
-        assertTrue(inCard.y > notched.bandHeight && inCard.size > rest.size)
-        val note = liveCard(null, signedIn, false, false)
-        assertTrue(facePlace(notched, Look.Card, note, DpSize.Zero, DpSize(400.dp, 44.dp)).size < inCard.size)
+    @Test fun faceSitsLeftOfTheNotchAndMovesIntoTheCard() {
+        val compact = islandSize(notched, Look.Compact, null)
+        val face = facePlace(notched, Look.Compact, null)
+        val notchLeft = (compact.width - 185.dp) / 2
+        assertTrue(face.x + face.size / 2 < notchLeft, "face must sit left of the notch")
+        assertTrue(face.size <= notched.bandHeight)
+        // hidden behind a notch the face is invisible; in a flat tab it shows
+        assertEquals(0f, facePlace(notched, Look.Hidden, null).alpha)
+        assertEquals(1f, facePlace(flat, Look.Hidden, null).alpha)
+        // open: bigger, under the header
+        val inCard = facePlace(notched, Look.Open, liveCard(null, booking, false, false))
+        assertTrue(inCard.y > notched.bandHeight && inCard.size > face.size)
+        // a task: rides the bar
         val progress = liveCard(null, upload, opened = true, peeks = false) as NotchCard.Progress
-        val riding = facePlace(notched, Look.Card, progress, DpSize.Zero, DpSize(520.dp, 52.dp))
-        val done = facePlace(notched, Look.Card, progress.copy(task = upload.activeTask.copy(progress = 1f)), DpSize.Zero, DpSize(520.dp, 52.dp))
-        assertTrue(done.dx > riding.dx)
+        val riding = facePlace(notched, Look.Open, progress)
+        val done = facePlace(notched, Look.Open, progress.copy(task = upload.activeTask.copy(progress = 1f)))
+        assertTrue(done.x > riding.x)
     }
 
     @Test fun renderStates() {
         val agent = MascotAgent()
-        val islands: List<Pair<MascotAgentState, NotchCard?>> = listOf(
-            MascotAgentState.Idle() to null,
-            upload to null,
-            warning to null,
-            signedIn to liveCard(agent, signedIn, false, false),
-            upload to liveCard(agent, upload, opened = false, peeks = true),
-            booking to liveCard(agent, booking, false, false),
-            warning to liveCard(agent, warning, false, false),
-            upload to liveCard(agent, upload, opened = true, peeks = false),
+        val islands: List<Triple<MascotAgentState, NotchCard?, NotchGeometry>> = listOf(
+            Triple(MascotAgentState.Idle(), null, flat),
+            Triple(MascotAgentState.Idle(), null, notched),
+            Triple(upload, null, notched),
+            Triple(warning, null, notched),
+            Triple(signedIn, liveCard(agent, signedIn, false, false), notched),
+            Triple(upload, liveCard(agent, upload, opened = false, peeks = true), notched),
+            Triple(booking, liveCard(agent, booking, false, false), notched),
+            Triple(warning, liveCard(agent, warning, false, false), notched),
+            Triple(upload, liveCard(agent, upload, opened = true, peeks = false), flat),
         )
         val w = stageSize(notched).width.value.toInt()
-        val rowH = 110
+        val rowH = 184
         val h = islands.size * (rowH + 8) + 8
         ImageComposeScene(w * 2, h * 2, Density(2f)) {
             Column(Modifier.background(Color(0xFF2B2D33)).padding(top = 8.dp)) {
-                islands.forEach { (state, card) ->
+                islands.forEach { (state, card, geometry) ->
                     Box(Modifier.size(w.dp, rowH.dp), contentAlignment = Alignment.TopCenter) {
+                        val look = if (card == null && state is MascotAgentState.Idle) Look.Hidden else lookOf(card, state, peeking = true)
+                        Island(state, card, look, geometry, card?.mood ?: state.currentMood, animate = false)
                         // the hardware notch, to see what it hides
-                        Island(state, card, notched, card?.mood ?: state.currentMood, animate = false)
-                        Box(Modifier.size(notched.notchWidth, notched.bandHeight).background(Color(0xFF3A1A1A).copy(alpha = 0.55f)))
+                        if (geometry.hasNotch) {
+                            Box(Modifier.size(geometry.notchWidth, geometry.bandHeight).background(Color(0xFF3A1A1A).copy(alpha = 0.55f)))
+                        }
                     }
                     Spacer(Modifier.height(8.dp))
                 }
             }
         }.use { scene ->
-            repeat(4) { scene.render(it * 50_000_000L) } // let the cards and wings measure and settle
+            repeat(4) { scene.render(it * 50_000_000L) } // let everything settle
             val image = scene.render(400_000_000L)
             val out = File("build/studio-face-notch").apply { mkdirs() }
             File(out, "states.png").writeBytes(image.encodeToData(EncodedImageFormat.PNG)!!.bytes)
