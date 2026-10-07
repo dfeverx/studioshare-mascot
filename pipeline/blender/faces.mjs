@@ -1,13 +1,13 @@
-// Draws the mascot's expressions as face textures for the 3D model: Brand/mascot/model/faces/<face>.png.
-//   node tools/mascot/blender/faces.mjs
+// Draws the mascot's expressions as face textures for the 3D model: pipeline/model/faces/<face>.png.
+//   node pipeline/blender/faces.mjs
 // One 1024 × 1024 image per face id the moods use (mascot.json → moods.*.face): glowing pink → orange
 // shapes on the black visor, centred, so the model's visor UVs map this square onto the face. The
 // render script swaps the image per mood and uses it as both colour and emission, so the face glows.
 import fs from 'node:fs';
 import path from 'node:path';
-import { MASCOT, sharp } from '../lib.mjs';
+import { PIPELINE_DIR, sharp } from '../tools/lib.mjs';
 
-const OUT = path.join(MASCOT, 'model', 'faces');
+const OUT = path.join(PIPELINE_DIR, 'model', 'faces');
 const S = 1024;
 const EX = 372, EX2 = 652, EY = 430; // eye centres
 
@@ -56,4 +56,4 @@ for (const [name, shapes] of Object.entries(FACES)) {
 </svg>`;
   await sharp(Buffer.from(svg)).png().toFile(path.join(OUT, `${name}.png`));
 }
-console.log(`${Object.keys(FACES).length} faces → ${path.relative(MASCOT, OUT)}/`);
+console.log(`${Object.keys(FACES).length} faces → ${path.relative(PIPELINE_DIR, OUT)}/`);
