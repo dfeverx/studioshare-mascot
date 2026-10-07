@@ -268,6 +268,8 @@ fun PreviewScreen(
                                         onClick = {
                                             selectedMoment = moment
                                             isAnimating = true
+                                            // the notch companion says it, if the moment has a line
+                                            agent.moment(moment)
                                         },
                                         label = { Text(moment, fontSize = 11.sp) }
                                     )
@@ -382,6 +384,7 @@ fun PreviewScreen(
                             isAnimating = true
                             agent.postWarning(
                                 id = "warn_disk",
+                                label = "Storage",
                                 title = "Low Storage Space",
                                 message = "Less than 1.5 GB remaining on local disk.",
                                 mood = "careful",
@@ -413,17 +416,33 @@ fun PreviewScreen(
                             isMomentMode = false
                             selectedMood = "celebrating"
                             isAnimating = true
-                            agent.postAlert(
-                                id = "alert_booking",
-                                title = "New Shoot Booked!",
-                                message = "Sarah requested Sunset Beach Session.",
-                                mood = "celebrating"
+                            agent.moment(
+                                MascotMoments.OrbitNewBooking,
+                                detail = "Sarah requested a Sunset Beach session.",
+                                actionLabel = "Open",
+                                onAction = { println("Open booking") }
                             )
                         },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
                     ) {
                         Text("Trigger Booking Alert")
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+                    OutlinedButton(
+                        onClick = { agent.moment(MascotMoments.AuthSignedIn, "Welcome back, Nithin!") },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Signed In")
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+                    OutlinedButton(
+                        onClick = { agent.moment(MascotMoments.UploadDone) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Upload Done")
                     }
 
                     Spacer(modifier = Modifier.height(20.dp))

@@ -10,6 +10,7 @@ import com.sun.jna.Pointer
 import com.sun.jna.Structure
 import java.awt.GraphicsEnvironment
 import java.awt.Toolkit
+import java.util.logging.Logger
 
 /**
  * Where the notch is on the main screen, in AWT points. [notchWidth] is 0 on a screen without one
@@ -36,18 +37,39 @@ internal data class NotchGeometry(
 internal object MacNotch {
     private val isMac = System.getProperty("os.name").orEmpty().startsWith("Mac")
 
+    /** A notch's width when the screen says it has one but not how wide (Coucou uses the same). */
+    private const val FALLBACK_NOTCH_WIDTH = 185.0
+
     fun geometry(): NotchGeometry {
         val gc = GraphicsEnvironment.getLocalGraphicsEnvironment().defaultScreenDevice.defaultConfiguration
         val b = gc.bounds
         val menuBar = runCatching { Toolkit.getDefaultToolkit().getScreenInsets(gc).top }.getOrDefault(0)
-        val notch = if (isMac) runCatching { notchOfMainScreen() }.getOrNull() else null
+        val measured = if (isMac) runCatching { notchOfPrimaryScreen() } else null
+        // the screen answered: trust it. It couldn't be asked: guess from the shape — every notched
+        // MacBook's built-in screen is ~1.54:1, where 16:10 screens are 1.6 and 16:9 ones 1.78
+        val notch = when {
+            measured == null -> null
+            measured.isSuccess -> measured.getOrNull()
+            looksNotched(b.width, b.height, menuBar) -> FALLBACK_NOTCH_WIDTH to menuBar.toDouble()
+            else -> null
+        }
         val band = when {
             notch != null && notch.second > 0 -> notch.second
             menuBar > 0 -> menuBar.toDouble()
             else -> 32.0
         }
-        return NotchGeometry(b.x, b.y, b.width, (notch?.first ?: 0.0).dp, band.dp)
+        return NotchGeometry(b.x, b.y, b.width, (notch?.first ?: 0.0).dp, band.dp).also {
+            log.info(
+                "notch: ${if (it.hasNotch) "${it.notchWidth} × ${it.bandHeight}" else "none"} " +
+                    "(${if (measured?.isSuccess == true) "measured" else "guessed"}; screen ${b.width}×${b.height}, menu bar $menuBar)",
+            )
+        }
     }
+
+    internal fun looksNotched(width: Int, height: Int, menuBar: Int): Boolean =
+        isMac && height > 0 && width.toDouble() / height in 1.52..1.56 && menuBar >= 30
+
+    private val log = Logger.getLogger("StudioShareMascot")
 
     /**
      * Raises the window titled [title] above the menu bar, on every Space and over full-screen apps,
@@ -87,16 +109,22 @@ internal object MacNotch {
 
     // ---- NSScreen ------------------------------------------------------------------------------
 
-    /** (notch width, notch height) of `NSScreen.mainScreen`, or null on a screen without one. */
-    private fun notchOfMainScreen(): Pair<Double, Double>? {
-        val screen = objc.objc_msgSend(cls("NSScreen"), sel("mainScreen")) ?: return null
-        if (!respondsTo(screen, "auxiliaryTopLeftArea")) return null // before macOS 12
+    /**
+     * (notch width, notch height) of the primary screen — the one with the menu bar, which is AWT's
+     * default screen — or null on a screen without one. A notch shows as a top safe-area inset; the
+     * menu bar's two halves either side of it give its width.
+     */
+    private fun notchOfPrimaryScreen(): Pair<Double, Double>? {
+        val screens = objc.objc_msgSend(cls("NSScreen"), sel("screens")) ?: return null
+        val screen = objc.objc_msgSend(screens, sel("firstObject")) ?: return null
+        if (!respondsTo(screen, "safeAreaInsets")) return null // before macOS 12: no notched Macs
+        val top = insets.objc_msgSend(screen, sel("safeAreaInsets")).top
+        if (top <= 0) return null
         val frame = rect.objc_msgSend(screen, sel("frame"))
         val left = rect.objc_msgSend(screen, sel("auxiliaryTopLeftArea"))
         val right = rect.objc_msgSend(screen, sel("auxiliaryTopRightArea"))
-        if (left.width <= 0 || right.width <= 0) return null
         val width = frame.width - left.width - right.width
-        return if (width > 0) width to left.height else null
+        return (if (left.width > 0 && right.width > 0 && width > 0 && width < frame.width) width else FALLBACK_NOTCH_WIDTH) to top
     }
 
     // ---- NSWindow ------------------------------------------------------------------------------
@@ -138,7 +166,23 @@ internal object MacNotch {
         fun objc_msgSend(receiver: Pointer?, selector: Pointer, arg: Pointer?): Pointer?
     }
 
-    /** The same `objc_msgSend`, declared to return an `NSRect` (arm64 returns it through x8). */
+    /** The same `objc_msgSend`, declared to return an `NSEdgeInsets` (four doubles, like a rect). */
+    @Suppress("FunctionName")
+    private interface ObjCInsets : Library {
+        fun objc_msgSend(receiver: Pointer?, selector: Pointer): NSEdgeInsets.ByValue
+    }
+
+    @Structure.FieldOrder("top", "left", "bottom", "right")
+    open class NSEdgeInsets : Structure() {
+        @JvmField var top = 0.0
+        @JvmField var left = 0.0
+        @JvmField var bottom = 0.0
+        @JvmField var right = 0.0
+
+        class ByValue : NSEdgeInsets(), Structure.ByValue
+    }
+
+    /** The same `objc_msgSend`, declared to return an `NSRect` (four doubles, back in d0–d3 on arm64). */
     @Suppress("FunctionName")
     private interface ObjCRect : Library {
         fun objc_msgSend(receiver: Pointer?, selector: Pointer): NSRect.ByValue
@@ -165,6 +209,7 @@ internal object MacNotch {
 
     private val objc by lazy { Native.load("objc", ObjC::class.java) }
     private val rect by lazy { Native.load("objc", ObjCRect::class.java) }
+    private val insets by lazy { Native.load("objc", ObjCInsets::class.java) }
     private val dispatch by lazy { Native.load("System", Dispatch::class.java) }
     private val mainQueue by lazy { NativeLibrary.getInstance("System").getGlobalVariableAddress("_dispatch_main_q") }
 

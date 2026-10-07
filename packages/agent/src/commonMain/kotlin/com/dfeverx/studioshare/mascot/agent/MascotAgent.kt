@@ -1,5 +1,6 @@
 package com.dfeverx.studioshare.mascot.agent
 
+import com.dfeverx.studioshare.mascot.MascotMomentMoods
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -86,7 +87,8 @@ class MascotAgent(
         message: String,
         mood: String = "careful",
         actionLabel: String? = null,
-        onAction: (() -> Unit)? = null
+        onAction: (() -> Unit)? = null,
+        label: String? = null,
     ) {
         val warning = AgentWarning(
             id = id,
@@ -94,7 +96,8 @@ class MascotAgent(
             message = message,
             mood = mood,
             actionLabel = actionLabel,
-            onAction = onAction
+            onAction = onAction,
+            label = label,
         )
         _warnings.value = _warnings.value + (id to warning)
         warningListeners.forEach { it(warning) }
@@ -120,8 +123,12 @@ class MascotAgent(
         mood: String = "celebrating",
         durationMs: Long = 4500L
     ) {
-        val alert = AgentAlert(id = id, title = title, message = message, mood = mood)
-        notificationListeners.forEach { it(alert) }
+        show(AgentAlert(id = id, title = title, message = message, mood = mood), durationMs)
+    }
+
+    private fun show(alert: AgentAlert, durationMs: Long) {
+        val id = alert.id
+        if (!alert.quiet) notificationListeners.forEach { it(alert) }
         _state.value = MascotAgentState.Alert(alert)
         scope.launch {
             delay(durationMs)
@@ -131,6 +138,44 @@ class MascotAgent(
                 recomputeState()
             }
         }
+    }
+
+    /**
+     * Something just happened in the app — a [com.dfeverx.studioshare.mascot.MascotMoments] key. The
+     * face takes the moment's mood, and if the moment has something to say (its spec `say`, or
+     * [message]) the notch opens with it: e.g. `moment(MascotMoments.AuthSignedIn, "Welcome back, Priya!")`.
+     * A moment with nothing to say only changes the face for a moment.
+     *
+     * @param detail a second, smaller line under the message.
+     * @param durationMs how long it shows; by default long enough to read it.
+     */
+    fun moment(
+        key: String,
+        message: String? = null,
+        detail: String? = null,
+        actionLabel: String? = null,
+        onAction: (() -> Unit)? = null,
+        firstAlreadySeen: Boolean = false,
+        durationMs: Long? = null,
+    ) {
+        val text = message ?: MascotMomentMoods.moment(key)?.say
+        val alert = AgentAlert(
+            id = "$key@${System.nanoTime()}",
+            title = text.orEmpty(),
+            message = detail.orEmpty(),
+            mood = MascotMomentMoods.moodFor(key, firstAlreadySeen),
+            label = MascotMomentMoods.areaFor(key),
+            actionLabel = actionLabel,
+            onAction = onAction,
+            quiet = text == null,
+        )
+        show(alert, durationMs ?: if (alert.quiet) 1_800L else readingTime(alert))
+    }
+
+    /** Closes the alert showing now, if it is [id] (an OK button on its card). */
+    fun dismissAlert(id: String) {
+        val current = _state.value
+        if (current is MascotAgentState.Alert && current.alert.id == id) recomputeState()
     }
 
     /** Registers a listener for system notifications. */
@@ -167,6 +212,10 @@ class MascotAgent(
     }
 
     companion object {
+        /** A comfortable time to read [alert]: 2.5 s plus ~45 ms a character, 3–7 s. */
+        internal fun readingTime(alert: AgentAlert): Long =
+            (2_500L + 45L * (alert.title.length + alert.message.length)).coerceIn(3_000L, 7_000L)
+
         /** Default global singleton instance for quick access across features. */
         val default: MascotAgent by lazy { MascotAgent() }
     }

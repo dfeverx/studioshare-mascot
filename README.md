@@ -99,14 +99,39 @@ StudioFace(mood = "idle", gaze = { gazeToward(dx, dy) })
 StudioFaceNotchCompanion(agent = agent, visible = true, onClose = {}, onOpenMainApp = {})
 ```
 
-The notch companion follows [Coucou](https://github.com/Louis-CFM/coucou)'s Mochi. A black island sits
-flush with the top of the screen above the menu bar (`MacNotch` lifts it there through the
-Objective-C runtime). It reaches past the notch with the face in the left ear and a badge (`43%`,
-`!`) in the right. The face turns to watch the cursor anywhere on screen. Click it and it springs open
-into a card. It folds back two seconds after the mouse leaves. Warnings hold it open until
-dismissed, and alerts until the agent drops them. Resting the mouse on the face makes it grow, and
-after a moment blush. Without a notch it is a small island with the face and one line of status. Its
-bottom corners are rounded so it reads as part of the notch, the one exception to the no-radius rule.
+The notch companion follows [Coucou](https://github.com/Louis-CFM/coucou)'s Mochi.
+
+At rest the island is the notch with a wide ear either side, so it is always wider than the camera
+housing. The face sits in the left ear's outer corner and turns to watch the cursor anywhere on
+screen. The right ear shows a progress ring while something runs, or an amber pulse while something
+needs the user. There are no words at rest.
+
+When something happens the notch opens downward into a card that is wide and short, so it only ever
+covers a strip under the menu bar:
+- A line like "You're signed in" is one row.
+- A message with a detail is two rows, with its buttons beside it rather than under it.
+- An upload shows its name over a bar the face rides along.
+
+The card is washed with the mood's colour and the face slides in from the ear. The motion is the
+Dynamic Island's: a soft spring open, a firmer one closed, and content fading in out of a slight
+blur. Hovering keeps whatever is showing, and clicking the resting island opens it.
+
+`MacNotch` reads the notch from the screen's safe area and logs what it found
+(`notch: 185 × 38 (measured …)`).
+
+Drive it with moments: every one-off moment in `spec/mascot.json` with a `say` line opens the notch
+with that line, under its area's label. Moments without one only change the face.
+
+```kotlin
+agent.moment(MascotMoments.AuthSignedIn)                          // "You're signed in. Welcome back!"
+agent.moment(MascotMoments.AuthSignedIn, "Welcome back, Priya!")  // your own words
+agent.moment(MascotMoments.OrbitNewBooking, detail = "Priya booked a portrait session.",
+    actionLabel = "Open", onAction = { /* … */ })
+```
+
+`MacNotch` lifts the window above the menu bar through the Objective-C runtime. Rounded corners
+(the island, its cards, pill buttons) are the notch companion's exception to the no-radius rule:
+the island has to read as part of the notch.
 
 On the web:
 ```tsx

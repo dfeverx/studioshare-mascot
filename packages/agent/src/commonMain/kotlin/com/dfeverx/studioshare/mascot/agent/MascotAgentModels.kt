@@ -27,7 +27,9 @@ data class AgentWarning(
     val mood: String = "careful", // e.g. careful, disconnected, hot, oops
     val timestamp: Long = System.currentTimeMillis(),
     val actionLabel: String? = null,
-    val onAction: (() -> Unit)? = null
+    val onAction: (() -> Unit)? = null,
+    /** Where it comes from, shown small above the message (e.g. "Storage"); null shows none. */
+    val label: String? = null,
 )
 
 /**
@@ -38,7 +40,13 @@ data class AgentAlert(
     val title: String,
     val message: String,
     val mood: String = "celebrating", // e.g. celebrating, proud, excited, ok
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = System.currentTimeMillis(),
+    /** Where it comes from, shown small above the title (e.g. "Upload"); null shows none. */
+    val label: String? = null,
+    val actionLabel: String? = null,
+    val onAction: (() -> Unit)? = null,
+    /** Only changes the face's mood; the notch stays shut (a moment with nothing to say). */
+    val quiet: Boolean = false,
 )
 
 /**

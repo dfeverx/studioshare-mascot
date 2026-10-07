@@ -1,5 +1,5 @@
 {
-  "$comment": "StudioShare mascot moods and moments — the one file to edit. moods: the 30 moods the StudioShare face can show (its expression per mood lives in packages/kmp/.../face/StudioFaceExpression.kt and packages/web/src/face.ts; motion is a MascotMotion id). moments: what happens in the app, mapped to a mood (keys are code constants: append-only, never rename; hold = lasts while its state lasts; first = once-per-account celebration key). Run `npm run moments` after editing.",
+  "$comment": "StudioShare mascot moods and moments — the one file to edit. moods: the 30 moods the StudioShare face can show (its expression per mood lives in packages/kmp/.../face/StudioFaceExpression.kt and packages/web/src/face.ts; motion is a MascotMotion id). moments: what happens in the app, mapped to a mood (keys are code constants: append-only, never rename; hold = lasts while its state lasts; first = once-per-account celebration key; say = the notch companion's default line for a one-off moment, and only moments with one open the notch). areas: the label each moment's first segment shows in the notch card's header. Run `npm run moments` after editing.",
   "schema": 2,
   "moods": {
     "capturing": {
@@ -99,13 +99,16 @@
       "hold": true
     },
     "account.emailSent": {
-      "mood": "carrying"
+      "mood": "carrying",
+      "say": "Check your inbox, the email is on its way."
     },
     "account.emailTaken": {
-      "mood": "oops"
+      "mood": "oops",
+      "say": "That email is already on another account."
     },
     "account.linked": {
-      "mood": "happy"
+      "mood": "happy",
+      "say": "Account linked."
     },
     "account.nudge": {
       "mood": "curious",
@@ -115,10 +118,12 @@
       "mood": "ok"
     },
     "account.recentLogin": {
-      "mood": "locked"
+      "mood": "locked",
+      "say": "Sign in again to make that change."
     },
     "account.switch": {
-      "mood": "sleepy"
+      "mood": "sleepy",
+      "say": "Switching accounts."
     },
     "app.activity": {
       "mood": "happy"
@@ -127,13 +132,15 @@
       "mood": "idle"
     },
     "app.lateNight": {
-      "mood": "sleepy"
+      "mood": "sleepy",
+      "say": "Late night edit? I'll keep you company."
     },
     "app.launch": {
       "mood": "idle"
     },
     "app.longIdle": {
-      "mood": "sleepy"
+      "mood": "sleepy",
+      "say": "Still here when you need me."
     },
     "app.navigated": {
       "mood": "glance"
@@ -145,7 +152,8 @@
       "mood": "happy"
     },
     "app.welcomeBack": {
-      "mood": "happy"
+      "mood": "happy",
+      "say": "Welcome back!"
     },
     "attendees.addManual": {
       "mood": "waiting",
@@ -160,14 +168,16 @@
       "hold": true
     },
     "attendees.error": {
-      "mood": "oops"
+      "mood": "oops",
+      "say": "Couldn't update the attendees."
     },
     "attendees.faceProblem": {
       "mood": "thinking",
       "hold": true
     },
     "attendees.facesOk": {
-      "mood": "ok"
+      "mood": "ok",
+      "say": "Attendee faces look good."
     },
     "attendees.facesReading": {
       "mood": "scanning",
@@ -178,7 +188,8 @@
       "hold": true
     },
     "attendees.imported": {
-      "mood": "happy"
+      "mood": "happy",
+      "say": "Attendees imported."
     },
     "attendees.importing": {
       "mood": "carrying",
@@ -189,7 +200,8 @@
       "hold": true
     },
     "attendees.matched": {
-      "mood": "celebrating"
+      "mood": "celebrating",
+      "say": "Attendees matched to their photos!"
     },
     "attendees.matching": {
       "mood": "searching",
@@ -204,35 +216,40 @@
       "hold": true
     },
     "attendees.parseError": {
-      "mood": "oops"
+      "mood": "oops",
+      "say": "Couldn't read that file."
     },
     "attendees.publishFirst": {
       "mood": "careful",
       "hold": true
     },
     "attendees.removed": {
-      "mood": "idle"
+      "mood": "idle",
+      "say": "Attendee removed."
     },
     "attendees.roleGate": {
       "mood": "locked",
       "hold": true
     },
     "attendees.wrongFile": {
-      "mood": "oops"
+      "mood": "oops",
+      "say": "That file doesn't look like an attendee list."
     },
     "auth.browserWaiting": {
       "mood": "patient",
       "hold": true
     },
     "auth.cancelled": {
-      "mood": "idle"
+      "mood": "idle",
+      "say": "Sign in cancelled."
     },
     "auth.launchingStudio": {
       "mood": "carrying",
       "hold": true
     },
     "auth.newUser": {
-      "mood": "curious"
+      "mood": "curious",
+      "say": "Welcome to StudioShare!"
     },
     "auth.otp": {
       "mood": "shy",
@@ -265,27 +282,32 @@
       "hold": true
     },
     "auth.signOut": {
-      "mood": "goodbye"
+      "mood": "goodbye",
+      "say": "Signed out. See you soon."
     },
     "auth.signedIn": {
-      "mood": "happy"
+      "mood": "happy",
+      "say": "You're signed in. Welcome back!"
     },
     "auth.slugAvailable": {
       "mood": "ok"
     },
     "auth.slugTaken": {
-      "mood": "oops"
+      "mood": "oops",
+      "say": "That studio link is taken."
     },
     "auth.studioLaunched": {
       "mood": "celebrating",
-      "first": "studio-launched"
+      "first": "studio-launched",
+      "say": "Your studio is live!"
     },
     "auth.studioName": {
       "mood": "waiting",
       "hold": true
     },
     "auth.termsMissing": {
-      "mood": "careful"
+      "mood": "careful",
+      "say": "Accept the terms to continue."
     },
     "auth.termsTicked": {
       "mood": "ok"
@@ -303,7 +325,8 @@
       "hold": true
     },
     "auth.wrongCode": {
-      "mood": "oops"
+      "mood": "oops",
+      "say": "That code didn't match."
     },
     "badge.awaitingPhotos": {
       "mood": "patient",
@@ -358,7 +381,8 @@
       "hold": true
     },
     "billing.nothingToRestore": {
-      "mood": "idle"
+      "mood": "idle",
+      "say": "No purchases to restore."
     },
     "billing.otherDevice": {
       "mood": "thinking",
@@ -369,33 +393,40 @@
       "hold": true
     },
     "billing.purchased": {
-      "mood": "celebrating"
+      "mood": "celebrating",
+      "say": "Purchase complete. Thank you!"
     },
     "billing.restoring": {
       "mood": "searching",
       "hold": true
     },
     "billing.subscribed": {
-      "mood": "celebrating"
+      "mood": "celebrating",
+      "say": "You're subscribed. Thank you!"
     },
     "bookingForm.closed": {
-      "mood": "sleepy"
+      "mood": "sleepy",
+      "say": "Booking form closed."
     },
     "bookingForm.dirty": {
       "mood": "patient",
       "hold": true
     },
     "bookingForm.invalid": {
-      "mood": "careful"
+      "mood": "careful",
+      "say": "A few booking form fields need a look."
     },
     "bookingForm.open": {
-      "mood": "proud"
+      "mood": "proud",
+      "say": "Booking form is open."
     },
     "bookingForm.saved": {
-      "mood": "ok"
+      "mood": "ok",
+      "say": "Booking form saved."
     },
     "campaign.delivered": {
-      "mood": "celebrating"
+      "mood": "celebrating",
+      "say": "Campaign delivered."
     },
     "campaign.editing": {
       "mood": "focused",
@@ -410,17 +441,20 @@
       "hold": true
     },
     "campaign.saved": {
-      "mood": "ok"
+      "mood": "ok",
+      "say": "Campaign saved."
     },
     "campaign.sending": {
       "mood": "sending",
       "hold": true
     },
     "campaign.someFailed": {
-      "mood": "oops"
+      "mood": "oops",
+      "say": "Some messages didn't send."
     },
     "campaign.test": {
-      "mood": "carrying"
+      "mood": "carrying",
+      "say": "Test message sent."
     },
     "capture.brandPicker": {
       "mood": "curious",
@@ -431,7 +465,8 @@
       "hold": true
     },
     "capture.cameraFound": {
-      "mood": "connected"
+      "mood": "connected",
+      "say": "Camera found."
     },
     "capture.connectNow": {
       "mood": "connecting",
@@ -451,7 +486,8 @@
     },
     "capture.firstPhoto": {
       "mood": "celebrating",
-      "first": "first-camera"
+      "first": "first-camera",
+      "say": "First photo in!"
     },
     "capture.hintValues": {
       "mood": "thinking",
@@ -462,7 +498,8 @@
       "hold": true
     },
     "capture.hostChanged": {
-      "mood": "thinking"
+      "mood": "thinking",
+      "say": "Capture host changed."
     },
     "capture.hotspot": {
       "mood": "connecting",
@@ -513,10 +550,12 @@
       "hold": true
     },
     "capture.reconnectKnown": {
-      "mood": "happy"
+      "mood": "happy",
+      "say": "Reconnecting to your camera."
     },
     "capture.reconnected": {
-      "mood": "connected"
+      "mood": "connected",
+      "say": "Camera reconnected."
     },
     "capture.secureMode": {
       "mood": "careful",
@@ -527,20 +566,24 @@
       "hold": true
     },
     "capture.signedIn": {
-      "mood": "ok"
+      "mood": "ok",
+      "say": "Signed in for live capture."
     },
     "capture.stopConfirm": {
       "mood": "careful",
       "hold": true
     },
     "capture.stopped": {
-      "mood": "goodbye"
+      "mood": "goodbye",
+      "say": "Live capture stopped."
     },
     "capture.transferFailed": {
-      "mood": "oops"
+      "mood": "oops",
+      "say": "A photo didn't transfer."
     },
     "capture.verified": {
-      "mood": "proud"
+      "mood": "proud",
+      "say": "Camera verified."
     },
     "capture.waitingForCamera": {
       "mood": "patient",
@@ -567,7 +610,8 @@
       "hold": true
     },
     "crew.assigned": {
-      "mood": "happy"
+      "mood": "happy",
+      "say": "Crew assigned."
     },
     "crew.empty": {
       "mood": "curious",
@@ -582,10 +626,12 @@
       "hold": true
     },
     "cull.aiCull": {
-      "mood": "thinking"
+      "mood": "thinking",
+      "say": "AI cull is on it."
     },
     "cull.allDecided": {
-      "mood": "celebrating"
+      "mood": "celebrating",
+      "say": "Every photo decided!"
     },
     "cull.assisted": {
       "mood": "waiting"
@@ -598,23 +644,28 @@
       "hold": true
     },
     "cull.compareDone": {
-      "mood": "happy"
+      "mood": "happy",
+      "say": "Comparison done."
     },
     "cull.draftWait": {
-      "mood": "patient"
+      "mood": "patient",
+      "say": "Hang on, the draft is still saving."
     },
     "cull.empty": {
       "mood": "curious",
       "hold": true
     },
     "cull.export": {
-      "mood": "carrying"
+      "mood": "carrying",
+      "say": "Exporting your picks."
     },
     "cull.exportBusy": {
-      "mood": "patient"
+      "mood": "patient",
+      "say": "An export is already running."
     },
     "cull.highlights": {
-      "mood": "celebrating"
+      "mood": "celebrating",
+      "say": "Highlights picked."
     },
     "cull.hot": {
       "mood": "hot",
@@ -667,13 +718,15 @@
       "hold": true
     },
     "cull.releaseFailed": {
-      "mood": "oops"
+      "mood": "oops",
+      "say": "Couldn't release the cull."
     },
     "cull.restart": {
       "mood": "thinking"
     },
     "cull.review": {
-      "mood": "proud"
+      "mood": "proud",
+      "say": "Ready for your review."
     },
     "cull.rowBlurred": {
       "mood": "oops"
@@ -709,14 +762,17 @@
       "hold": true
     },
     "cull.sendMaybes": {
-      "mood": "ok"
+      "mood": "ok",
+      "say": "Maybes sent for review."
     },
     "cull.sent": {
       "mood": "celebrating",
-      "first": "first-cull"
+      "first": "first-cull",
+      "say": "Cull sent."
     },
     "cull.started": {
-      "mood": "excited"
+      "mood": "excited",
+      "say": "Culling started."
     },
     "cull.strictness": {
       "mood": "focused"
@@ -744,24 +800,28 @@
       "hold": true
     },
     "diagnostics.sent": {
-      "mood": "happy"
+      "mood": "happy",
+      "say": "Diagnostics sent. Thank you!"
     },
     "event.corporateLocked": {
       "mood": "locked",
       "hold": true
     },
     "event.coverAdded": {
-      "mood": "proud"
+      "mood": "proud",
+      "say": "Cover added."
     },
     "event.coverFailed": {
-      "mood": "oops"
+      "mood": "oops",
+      "say": "Couldn't add the cover."
     },
     "event.createForm": {
       "mood": "waiting",
       "hold": true
     },
     "event.crewAssigned": {
-      "mood": "happy"
+      "mood": "happy",
+      "say": "Crew assigned to the event."
     },
     "event.dateSet": {
       "mood": "ok"
@@ -777,23 +837,28 @@
       "hold": true
     },
     "event.deleted": {
-      "mood": "idle"
+      "mood": "idle",
+      "say": "Event deleted."
     },
     "event.draftFailed": {
-      "mood": "oops"
+      "mood": "oops",
+      "say": "Couldn't save the draft."
     },
     "event.draftSaved": {
-      "mood": "ok"
+      "mood": "ok",
+      "say": "Draft saved."
     },
     "event.edited": {
-      "mood": "ok"
+      "mood": "ok",
+      "say": "Event updated."
     },
     "event.nameTyping": {
       "mood": "waiting",
       "hold": true
     },
     "event.needsDate": {
-      "mood": "careful"
+      "mood": "careful",
+      "say": "Add a date to publish."
     },
     "event.outOfCredits": {
       "mood": "sad",
@@ -804,18 +869,21 @@
       "hold": true
     },
     "event.publishFailed": {
-      "mood": "oops"
+      "mood": "oops",
+      "say": "Couldn't publish the event."
     },
     "event.published": {
       "mood": "proud",
-      "first": "first-event"
+      "first": "first-event",
+      "say": "Event published!"
     },
     "event.publishing": {
       "mood": "carrying",
       "hold": true
     },
     "event.retentionSet": {
-      "mood": "careful"
+      "mood": "careful",
+      "say": "Face data retention updated."
     },
     "event.typeChosen": {
       "mood": "happy"
@@ -829,7 +897,8 @@
       "hold": true
     },
     "events.found": {
-      "mood": "ok"
+      "mood": "ok",
+      "say": "Found your events."
     },
     "events.noneCompleted": {
       "mood": "sleepy",
@@ -843,20 +912,24 @@
       "mood": "focused"
     },
     "export.alreadyDone": {
-      "mood": "ok"
+      "mood": "ok",
+      "say": "Already exported."
     },
     "export.done": {
-      "mood": "celebrating"
+      "mood": "celebrating",
+      "say": "Export finished!"
     },
     "export.failed": {
-      "mood": "sad"
+      "mood": "sad",
+      "say": "Export failed."
     },
     "export.missingOriginals": {
       "mood": "searching",
       "hold": true
     },
     "export.partial": {
-      "mood": "oops"
+      "mood": "oops",
+      "say": "Some photos didn't export."
     },
     "export.preparing": {
       "mood": "focused",
@@ -867,23 +940,27 @@
       "hold": true
     },
     "export.stopped": {
-      "mood": "sleepy"
+      "mood": "sleepy",
+      "say": "Export stopped."
     },
     "export.structure": {
       "mood": "ok"
     },
     "faces.allMatched": {
-      "mood": "happy"
+      "mood": "happy",
+      "say": "Every face matched!"
     },
     "faces.exhausted": {
       "mood": "thinking",
       "hold": true
     },
     "faces.failed": {
-      "mood": "oops"
+      "mood": "oops",
+      "say": "Face matching failed."
     },
     "faces.matched": {
-      "mood": "celebrating"
+      "mood": "celebrating",
+      "say": "Faces matched."
     },
     "faces.matching": {
       "mood": "searching",
@@ -894,7 +971,8 @@
       "hold": true
     },
     "faces.none": {
-      "mood": "searching"
+      "mood": "searching",
+      "say": "No faces found."
     },
     "faces.reading": {
       "mood": "scanning",
@@ -913,7 +991,8 @@
       "hold": true
     },
     "folder.created": {
-      "mood": "happy"
+      "mood": "happy",
+      "say": "Folder created."
     },
     "folder.dropHover": {
       "mood": "excited",
@@ -924,10 +1003,12 @@
       "hold": true
     },
     "folder.pinned": {
-      "mood": "ok"
+      "mood": "ok",
+      "say": "Folder pinned."
     },
     "folder.renamed": {
-      "mood": "ok"
+      "mood": "ok",
+      "say": "Folder renamed."
     },
     "folder.typeChosen": {
       "mood": "idle"
@@ -937,24 +1018,28 @@
       "hold": true
     },
     "hosts.accessOff": {
-      "mood": "locked"
+      "mood": "locked",
+      "say": "Host access turned off."
     },
     "hosts.accessOn": {
-      "mood": "ok"
+      "mood": "ok",
+      "say": "Host access turned on."
     },
     "hosts.contacts": {
       "mood": "searching",
       "hold": true
     },
     "hosts.duplicate": {
-      "mood": "thinking"
+      "mood": "thinking",
+      "say": "That host is already invited."
     },
     "hosts.empty": {
       "mood": "curious",
       "hold": true
     },
     "hosts.failed": {
-      "mood": "oops"
+      "mood": "oops",
+      "say": "Couldn't update hosts."
     },
     "hosts.inviteEmail": {
       "mood": "waiting",
@@ -969,23 +1054,28 @@
       "hold": true
     },
     "hosts.inviteSent": {
-      "mood": "sending"
+      "mood": "sending",
+      "say": "Invite sent."
     },
     "hosts.joined": {
-      "mood": "excited"
+      "mood": "excited",
+      "say": "A host joined!"
     },
     "hosts.linkCreated": {
-      "mood": "proud"
+      "mood": "proud",
+      "say": "Host link created."
     },
     "hosts.linkExpired": {
       "mood": "sleepy",
       "hold": true
     },
     "hosts.linkExtended": {
-      "mood": "ok"
+      "mood": "ok",
+      "say": "Host link extended."
     },
     "hosts.linkFull": {
-      "mood": "ok"
+      "mood": "ok",
+      "say": "The host link is full."
     },
     "hosts.pending": {
       "mood": "patient",
@@ -1000,17 +1090,20 @@
       "hold": true
     },
     "hosts.removed": {
-      "mood": "idle"
+      "mood": "idle",
+      "say": "Host removed."
     },
     "hosts.resent": {
-      "mood": "carrying"
+      "mood": "carrying",
+      "say": "Invite sent again."
     },
     "hosts.revokeConfirm": {
       "mood": "careful",
       "hold": true
     },
     "hosts.revoked": {
-      "mood": "idle"
+      "mood": "idle",
+      "say": "Host access revoked."
     },
     "hosts.seats": {
       "mood": "focused"
@@ -1030,36 +1123,43 @@
       "mood": "excited"
     },
     "import.denied": {
-      "mood": "locked"
+      "mood": "locked",
+      "say": "StudioShare needs access to import."
     },
     "import.diskFull": {
       "mood": "hot",
       "hold": true
     },
     "import.done": {
-      "mood": "happy"
+      "mood": "happy",
+      "say": "Import finished!"
     },
     "import.driveLost": {
-      "mood": "oops"
+      "mood": "oops",
+      "say": "The drive was disconnected."
     },
     "import.driveOut": {
       "mood": "disconnected",
       "hold": true
     },
     "import.duplicateName": {
-      "mood": "thinking"
+      "mood": "thinking",
+      "say": "A folder with that name exists."
     },
     "import.failed": {
-      "mood": "sad"
+      "mood": "sad",
+      "say": "Import failed."
     },
     "import.fileMissing": {
-      "mood": "searching"
+      "mood": "searching",
+      "say": "A file went missing."
     },
     "import.menu": {
       "mood": "curious"
     },
     "import.originalsRead": {
-      "mood": "ok"
+      "mood": "ok",
+      "say": "Originals read."
     },
     "import.pickerCancelled": {
       "mood": "idle"
@@ -1087,13 +1187,15 @@
       "mood": "ok"
     },
     "import.truncated": {
-      "mood": "oops"
+      "mood": "oops",
+      "say": "Some files were left out."
     },
     "import.withoutCull": {
       "mood": "carrying"
     },
     "job.delivered": {
-      "mood": "proud"
+      "mood": "proud",
+      "say": "Job delivered!"
     },
     "media.locateOriginals": {
       "mood": "searching",
@@ -1104,23 +1206,27 @@
       "hold": true
     },
     "orbit.bookingSeen": {
-      "mood": "ok"
+      "mood": "ok",
+      "say": "Booking seen."
     },
     "orbit.chipEmpty": {
       "mood": "sleepy",
       "hold": true
     },
     "orbit.closeable": {
-      "mood": "proud"
+      "mood": "proud",
+      "say": "This job is ready to close."
     },
     "orbit.createEvent": {
       "mood": "carrying"
     },
     "orbit.datesConfirmed": {
-      "mood": "happy"
+      "mood": "happy",
+      "say": "Dates confirmed."
     },
     "orbit.declined": {
-      "mood": "idle"
+      "mood": "idle",
+      "say": "Booking declined."
     },
     "orbit.deleteConfirm": {
       "mood": "careful",
@@ -1139,10 +1245,12 @@
       "hold": true
     },
     "orbit.eventLinked": {
-      "mood": "connected"
+      "mood": "connected",
+      "say": "Event linked to the job."
     },
     "orbit.followUp": {
-      "mood": "excited"
+      "mood": "excited",
+      "say": "Time to follow up."
     },
     "orbit.historyEmpty": {
       "mood": "curious",
@@ -1153,10 +1261,12 @@
       "hold": true
     },
     "orbit.invoiceSent": {
-      "mood": "carrying"
+      "mood": "carrying",
+      "say": "Invoice sent."
     },
     "orbit.jobRestored": {
-      "mood": "happy"
+      "mood": "happy",
+      "say": "Job restored."
     },
     "orbit.moneyWarning": {
       "mood": "careful",
@@ -1164,46 +1274,55 @@
     },
     "orbit.newBooking": {
       "mood": "excited",
-      "first": "first-booking"
+      "first": "first-booking",
+      "say": "New booking!"
     },
     "orbit.newJob": {
       "mood": "waiting",
       "hold": true
     },
     "orbit.noteAdded": {
-      "mood": "ok"
+      "mood": "ok",
+      "say": "Note added."
     },
     "orbit.paidInFull": {
       "mood": "celebrating",
-      "first": "first-paid"
+      "first": "first-paid",
+      "say": "Paid in full!"
     },
     "orbit.paymentFuture": {
       "mood": "careful"
     },
     "orbit.paymentRecorded": {
-      "mood": "happy"
+      "mood": "happy",
+      "say": "Payment recorded."
     },
     "orbit.paymentTooMuch": {
-      "mood": "careful"
+      "mood": "careful",
+      "say": "That's more than the balance."
     },
     "orbit.pushOpened": {
       "mood": "excited"
     },
     "orbit.quoteAccepted": {
-      "mood": "celebrating"
+      "mood": "celebrating",
+      "say": "Quote accepted!"
     },
     "orbit.quoteSent": {
-      "mood": "sending"
+      "mood": "sending",
+      "say": "Quote sent."
     },
     "orbit.received": {
-      "mood": "happy"
+      "mood": "happy",
+      "say": "Booking received."
     },
     "orbit.removePaymentConfirm": {
       "mood": "careful",
       "hold": true
     },
     "orbit.syncFailed": {
-      "mood": "oops"
+      "mood": "oops",
+      "say": "Orbit couldn't sync."
     },
     "orbit.trashEmpty": {
       "mood": "happy",
@@ -1214,7 +1333,8 @@
       "hold": true
     },
     "permission.declined": {
-      "mood": "ok"
+      "mood": "ok",
+      "say": "Permission declined."
     },
     "permission.notifications": {
       "mood": "waiting",
@@ -1225,10 +1345,12 @@
       "hold": true
     },
     "processing.failed": {
-      "mood": "oops"
+      "mood": "oops",
+      "say": "Processing failed."
     },
     "public.downloads": {
-      "mood": "ok"
+      "mood": "ok",
+      "say": "Guests are downloading photos."
     },
     "public.expired": {
       "mood": "sleepy",
@@ -1246,10 +1368,12 @@
       "mood": "carrying"
     },
     "qr.mapFailed": {
-      "mood": "oops"
+      "mood": "oops",
+      "say": "Couldn't map the QR code."
     },
     "qr.mapped": {
-      "mood": "connected"
+      "mood": "connected",
+      "say": "QR code mapped."
     },
     "qr.mapping": {
       "mood": "connecting",
@@ -1276,7 +1400,8 @@
       "hold": true
     },
     "qrdirect.ready": {
-      "mood": "proud"
+      "mood": "proud",
+      "say": "QR code ready."
     },
     "role.gate": {
       "mood": "locked",
@@ -1284,17 +1409,20 @@
     },
     "selection.completed": {
       "mood": "celebrating",
-      "first": "first-selection"
+      "first": "first-selection",
+      "say": "Selection complete!"
     },
     "selection.hostDone": {
-      "mood": "happy"
+      "mood": "happy",
+      "say": "The host finished selecting."
     },
     "selection.inProgress": {
       "mood": "thinking",
       "hold": true
     },
     "selection.invited": {
-      "mood": "sending"
+      "mood": "sending",
+      "say": "Selection invite sent."
     },
     "selection.linkFirst": {
       "mood": "careful",
@@ -1318,10 +1446,12 @@
       "mood": "thinking"
     },
     "selection.reselect": {
-      "mood": "thinking"
+      "mood": "thinking",
+      "say": "Selection reopened."
     },
     "selection.reset": {
-      "mood": "ok"
+      "mood": "ok",
+      "say": "Selection reset."
     },
     "selection.resetConfirm": {
       "mood": "careful",
@@ -1332,21 +1462,24 @@
       "hold": true
     },
     "selection.reviewReceived": {
-      "mood": "excited"
+      "mood": "excited",
+      "say": "Review received."
     },
     "selection.several": {
       "mood": "patient",
       "hold": true
     },
     "selection.started": {
-      "mood": "excited"
+      "mood": "excited",
+      "say": "Selection started."
     },
     "selection.unfinishedWarning": {
       "mood": "careful",
       "hold": true
     },
     "share.copied": {
-      "mood": "ok"
+      "mood": "ok",
+      "say": "Link copied."
     },
     "share.link": {
       "mood": "carrying"
@@ -1356,19 +1489,23 @@
       "hold": true
     },
     "share.publicLive": {
-      "mood": "proud"
+      "mood": "proud",
+      "say": "Gallery is live!"
     },
     "share.qr": {
       "mood": "proud"
     },
     "share.qrSaveFailed": {
-      "mood": "oops"
+      "mood": "oops",
+      "say": "Couldn't save the QR code."
     },
     "share.qrSaved": {
-      "mood": "ok"
+      "mood": "ok",
+      "say": "QR code saved."
     },
     "state.backOnline": {
-      "mood": "connected"
+      "mood": "connected",
+      "say": "Back online."
     },
     "state.clientError": {
       "mood": "locked",
@@ -1431,7 +1568,8 @@
       "hold": true
     },
     "state.timeout": {
-      "mood": "patient"
+      "mood": "patient",
+      "say": "That took too long. Try again."
     },
     "state.undo": {
       "mood": "thinking"
@@ -1443,10 +1581,12 @@
       "mood": "careful"
     },
     "storage.cleanFailed": {
-      "mood": "oops"
+      "mood": "oops",
+      "say": "Couldn't free up space."
     },
     "storage.cleaned": {
-      "mood": "ok"
+      "mood": "ok",
+      "say": "Space freed up."
     },
     "storage.empty": {
       "mood": "happy",
@@ -1461,7 +1601,8 @@
       "hold": true
     },
     "studio.assetFailed": {
-      "mood": "oops"
+      "mood": "oops",
+      "say": "Couldn't save that."
     },
     "studio.country": {
       "mood": "ok"
@@ -1471,7 +1612,8 @@
       "hold": true
     },
     "studio.logo": {
-      "mood": "proud"
+      "mood": "proud",
+      "say": "Logo updated."
     },
     "studio.none": {
       "mood": "thinking",
@@ -1481,21 +1623,24 @@
       "mood": "ok"
     },
     "team.addFailed": {
-      "mood": "oops"
+      "mood": "oops",
+      "say": "Couldn't add the member."
     },
     "team.addForm": {
       "mood": "waiting",
       "hold": true
     },
     "team.duplicate": {
-      "mood": "oops"
+      "mood": "oops",
+      "say": "Already on your team."
     },
     "team.empty": {
       "mood": "curious",
       "hold": true
     },
     "team.memberAdded": {
-      "mood": "happy"
+      "mood": "happy",
+      "say": "Team member added."
     },
     "team.refresh": {
       "mood": "focused"
@@ -1505,7 +1650,8 @@
       "hold": true
     },
     "team.removeOffline": {
-      "mood": "disconnected"
+      "mood": "disconnected",
+      "say": "Go online to remove a member."
     },
     "team.rolePicker": {
       "mood": "thinking",
@@ -1516,10 +1662,12 @@
       "hold": true
     },
     "update.available": {
-      "mood": "excited"
+      "mood": "excited",
+      "say": "An update is available."
     },
     "update.checkFailed": {
-      "mood": "oops"
+      "mood": "oops",
+      "say": "Couldn't check for updates."
     },
     "update.downloading": {
       "mood": "carrying",
@@ -1529,20 +1677,24 @@
       "mood": "ok"
     },
     "update.ready": {
-      "mood": "happy"
+      "mood": "happy",
+      "say": "Update ready. Restart to finish."
     },
     "update.required": {
       "mood": "careful",
       "hold": true
     },
     "update.upToDate": {
-      "mood": "ok"
+      "mood": "ok",
+      "say": "You're up to date."
     },
     "upload.backOnline": {
-      "mood": "connected"
+      "mood": "connected",
+      "say": "Back online. Uploads resumed."
     },
     "upload.background": {
-      "mood": "goodbye"
+      "mood": "goodbye",
+      "say": "Uploading in the background."
     },
     "upload.backgroundAsk": {
       "mood": "waiting",
@@ -1554,14 +1706,16 @@
     },
     "upload.done": {
       "mood": "celebrating",
-      "first": "first-upload"
+      "first": "first-upload",
+      "say": "All photos uploaded!"
     },
     "upload.facesReading": {
       "mood": "scanning",
       "hold": true
     },
     "upload.facesReady": {
-      "mood": "ok"
+      "mood": "ok",
+      "say": "Faces are ready to match."
     },
     "upload.failed": {
       "mood": "oops",
@@ -1572,14 +1726,16 @@
       "hold": true
     },
     "upload.manyFailed": {
-      "mood": "oops"
+      "mood": "oops",
+      "say": "Several photos didn't upload."
     },
     "upload.morePreparing": {
       "mood": "focused",
       "hold": true
     },
     "upload.noWatermark": {
-      "mood": "careful"
+      "mood": "careful",
+      "say": "Uploading without a watermark."
     },
     "upload.offline": {
       "mood": "disconnected",
@@ -1594,17 +1750,20 @@
       "hold": true
     },
     "upload.pausedByUser": {
-      "mood": "sleepy"
+      "mood": "sleepy",
+      "say": "Upload paused."
     },
     "upload.preparing": {
       "mood": "focused",
       "hold": true
     },
     "upload.resumed": {
-      "mood": "excited"
+      "mood": "excited",
+      "say": "Upload resumed."
     },
     "upload.retryAll": {
-      "mood": "excited"
+      "mood": "excited",
+      "say": "Retrying failed uploads."
     },
     "upload.retrying": {
       "mood": "uploading",
@@ -1623,47 +1782,56 @@
       "hold": true
     },
     "wall.cover": {
-      "mood": "proud"
+      "mood": "proud",
+      "say": "Wall cover updated."
     },
     "wall.coverFailed": {
-      "mood": "oops"
+      "mood": "oops",
+      "say": "Couldn't update the cover."
     },
     "wall.empty": {
       "mood": "curious",
       "hold": true
     },
     "wall.failed": {
-      "mood": "oops"
+      "mood": "oops",
+      "say": "Studio Wall couldn't update."
     },
     "wall.featured": {
-      "mood": "ok"
+      "mood": "ok",
+      "say": "Featured on your wall."
     },
     "wall.publishConfirm": {
       "mood": "waiting",
       "hold": true
     },
     "wall.published": {
-      "mood": "proud"
+      "mood": "proud",
+      "say": "Studio Wall is live!"
     },
     "wall.styling": {
       "mood": "focused",
       "hold": true
     },
     "wall.unpublished": {
-      "mood": "sleepy"
+      "mood": "sleepy",
+      "say": "Studio Wall unpublished."
     },
     "watermark.editing": {
       "mood": "focused",
       "hold": true
     },
     "watermark.enabled": {
-      "mood": "focused"
+      "mood": "focused",
+      "say": "Watermark on."
     },
     "watermark.saved": {
-      "mood": "ok"
+      "mood": "ok",
+      "say": "Watermark saved."
     },
     "website.aiFailed": {
-      "mood": "oops"
+      "mood": "oops",
+      "say": "Couldn't write that. Try again."
     },
     "website.aiLimit": {
       "mood": "sleepy",
@@ -1674,17 +1842,20 @@
       "hold": true
     },
     "website.aiUndone": {
-      "mood": "ok"
+      "mood": "ok",
+      "say": "Change undone."
     },
     "website.aiWriting": {
       "mood": "thinking",
       "hold": true
     },
     "website.aiWritten": {
-      "mood": "proud"
+      "mood": "proud",
+      "say": "Drafted it for you."
     },
     "website.albumSaved": {
-      "mood": "ok"
+      "mood": "ok",
+      "say": "Album saved."
     },
     "website.albumUploading": {
       "mood": "carrying",
@@ -1715,16 +1886,20 @@
     },
     "website.live": {
       "mood": "proud",
-      "first": "first-website"
+      "first": "first-website",
+      "say": "Your website is live!"
     },
     "website.liveFailed": {
-      "mood": "disconnected"
+      "mood": "disconnected",
+      "say": "Couldn't publish the website."
     },
     "website.offline": {
-      "mood": "sleepy"
+      "mood": "sleepy",
+      "say": "Website taken offline."
     },
     "website.published": {
-      "mood": "ok"
+      "mood": "ok",
+      "say": "Website published!"
     },
     "website.publishing": {
       "mood": "carrying",
@@ -1740,5 +1915,52 @@
       "mood": "waiting",
       "hold": true
     }
+  },
+  "areas": {
+    "account": "Account",
+    "app": "StudioShare",
+    "attendees": "Attendees",
+    "auth": "Sign in",
+    "badge": "StudioShare",
+    "billing": "Billing",
+    "bookingForm": "Booking form",
+    "campaign": "Campaign",
+    "capture": "Live capture",
+    "cloud": "Cloud",
+    "credits": "Credits",
+    "crew": "Crew",
+    "cull": "Culling",
+    "device": "Device",
+    "diagnostics": "Diagnostics",
+    "event": "Event",
+    "events": "Events",
+    "export": "Export",
+    "faces": "Face match",
+    "failed": "Uploads",
+    "folder": "Folder",
+    "folders": "Folders",
+    "hosts": "Hosts",
+    "import": "Import",
+    "job": "Orbit",
+    "media": "Media",
+    "orbit": "Orbit",
+    "permission": "Permissions",
+    "processing": "Processing",
+    "public": "Gallery",
+    "qr": "QR codes",
+    "qrdirect": "QR codes",
+    "role": "Team",
+    "selection": "Selection",
+    "share": "Sharing",
+    "state": "StudioShare",
+    "storage": "Storage",
+    "studio": "Studio",
+    "team": "Team",
+    "transfers": "Transfers",
+    "update": "Update",
+    "upload": "Upload",
+    "wall": "Studio Wall",
+    "watermark": "Watermark",
+    "website": "Website"
   }
 }

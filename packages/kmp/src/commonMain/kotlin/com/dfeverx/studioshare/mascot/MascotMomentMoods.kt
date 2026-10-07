@@ -7,6 +7,8 @@ data class MascotMomentDef(
     val hold: Boolean = false,
     /** Once-per-account celebration key; repeats show [MascotMomentMoods.MOOD_OK] instead. */
     val first: String? = null,
+    /** The default line a one-off moment says in the notch; null keeps it to a change of face. */
+    val say: String? = null,
 )
 
 /**
@@ -31,6 +33,9 @@ object MascotMomentMoods {
             else -> MOOD_IDLE
         }
     }
+
+    /** The label a notification header shows for [momentKey]'s area, e.g. `upload.done` → "Upload". */
+    fun areaFor(momentKey: String): String = MASCOT_AREAS[momentKey.substringBefore('.')] ?: "StudioShare"
 
     /** A mood's body motion (a `MascotMotion` id); `none` for an unknown mood. */
     fun motionOf(mood: String): String = MASCOT_MOOD_MOTIONS[mood] ?: "none"
