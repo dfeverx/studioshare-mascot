@@ -139,6 +139,8 @@ private val WINDOW_MARGIN = 16.dp
 internal val INK = Color(0xFF000000)
 /** The grey hairline down the island's sides and along its bottom, so it reads against a dark desktop. */
 private val ISLAND_EDGE = Color(0xFF4A4D55)
+/** How far down the island's sides the hairline takes to fade in from nothing. */
+private val EDGE_FADE = 32.dp
 private val CARD = Color(0xFF141518)
 private val CARD_EDGE = Color.White.copy(alpha = 0.06f)
 private val TEXT = Color(0xFFF5F6F8)
@@ -562,7 +564,13 @@ internal fun Island(
                     arcTo(Rect(rt - 2 * r, b - 2 * r, rt, b), 90f, -90f, false)
                     lineTo(rt, 0f)
                 }
-                drawPath(edge, ISLAND_EDGE, style = Stroke(s))
+                // the sides fade in from nothing at the top, so the edge never meets the screen's edge
+                val fade = Brush.verticalGradient(
+                    listOf(ISLAND_EDGE.copy(alpha = 0f), ISLAND_EDGE),
+                    startY = 0f,
+                    endY = (size.height * 0.7f).coerceAtMost(EDGE_FADE.toPx()),
+                )
+                drawPath(edge, fade, style = Stroke(s))
             }
             .then(
                 if (open) Modifier
