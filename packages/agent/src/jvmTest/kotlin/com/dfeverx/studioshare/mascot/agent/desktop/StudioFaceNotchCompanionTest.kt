@@ -130,26 +130,35 @@ class StudioFaceNotchCompanionTest {
         assertEquals(Tone.Calm, toneOf("idle"))
     }
 
-    @Test fun islandHidesInTheNotchAndGrowsEachSide() {
-        // hidden: exactly the notch; compact: 80 more each side; open: 640 wide
-        assertEquals(DpSize(185.dp, 38.dp), islandSize(notched, Look.Hidden, null))
-        assertEquals(DpSize(185.dp + COMPACT_GROW * 2, 38.dp), islandSize(notched, Look.Compact, null))
+    @Test fun islandKeepsTheNotchWidthUntilItOpens() {
+        // hidden: wider than the notch, so it shows; compact: the same width, a row taller; open: 640 wide
+        assertEquals(DpSize(185.dp + NOTCH_EAR * 2, 38.dp), islandSize(notched, Look.Hidden, null))
+        assertTrue(islandSize(notched, Look.Hidden, null).width > notched.notchWidth)
+        assertEquals(DpSize(185.dp + NOTCH_EAR * 2, 38.dp + COMPACT_DROP), islandSize(notched, Look.Compact, null))
+        assertEquals(islandSize(flat, Look.Hidden, null).width, islandSize(flat, Look.Compact, null).width)
         assertEquals(DpSize(OPEN_W, OPEN_H), islandSize(notched, Look.Open, liveCard(null, booking, false, false)))
         assertEquals(OPEN_PROGRESS_H, islandSize(notched, Look.Open, liveCard(null, upload, true, false)).height)
-        // without a notch, hidden is a small tab
-        assertTrue(islandSize(flat, Look.Hidden, null).width < 100.dp)
+        // the open island is as tall as what it holds: a line, a message, one with buttons
+        val note = islandSize(notched, Look.Open, liveCard(null, signedIn, false, false)).height
+        val asks = islandSize(notched, Look.Open, liveCard(null, warning, false, false)).height
+        assertTrue(note < OPEN_H && OPEN_H < asks, "note $note, message $OPEN_H, with buttons $asks")
+        assertTrue(stageSize(notched).height >= asks)
+        // without a notch, hidden is a tab as wide as a notch
+        assertEquals(185.dp, islandSize(flat, Look.Hidden, null).width)
         // the whole stage stays a strip under the menu bar
         assertTrue(stageSize(notched).height < 200.dp)
     }
 
-    @Test fun faceSitsLeftOfTheNotchAndMovesIntoTheCard() {
+    @Test fun faceSitsUnderTheNotchAndMovesIntoTheCard() {
         val compact = islandSize(notched, Look.Compact, null)
         val face = facePlace(notched, Look.Compact, null)
-        val notchLeft = (compact.width - 185.dp) / 2
-        assertTrue(face.x + face.size / 2 < notchLeft, "face must sit left of the notch")
-        assertTrue(face.size <= notched.bandHeight)
-        // hidden behind a notch the face is invisible; in a flat tab it shows
-        assertEquals(0f, facePlace(notched, Look.Hidden, null).alpha)
+        assertTrue(face.y - face.size / 2 >= notched.bandHeight, "face must sit under the camera")
+        assertTrue(face.y + face.size / 2 <= compact.height && face.x - face.size / 2 >= 0.dp)
+        assertTrue(face.size <= COMPACT_DROP)
+        // hidden: the face shows in the notch's left ear, clear of the camera; in a flat tab it shows too
+        val ear = facePlace(notched, Look.Hidden, null)
+        assertEquals(1f, ear.alpha)
+        assertTrue(ear.x - ear.size / 2 >= 0.dp && ear.x + ear.size / 2 <= NOTCH_EAR, "face must sit beside the camera")
         assertEquals(1f, facePlace(flat, Look.Hidden, null).alpha)
         // open: bigger, under the header
         val inCard = facePlace(notched, Look.Open, liveCard(null, booking, false, false))

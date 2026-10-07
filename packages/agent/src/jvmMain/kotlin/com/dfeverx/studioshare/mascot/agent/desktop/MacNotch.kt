@@ -38,7 +38,7 @@ internal object MacNotch {
     private val isMac = System.getProperty("os.name").orEmpty().startsWith("Mac")
 
     /** A notch's width when the screen says it has one but not how wide (Coucou uses the same). */
-    private const val FALLBACK_NOTCH_WIDTH = 185.0
+    internal const val FALLBACK_NOTCH_WIDTH = 185.0
 
     fun geometry(): NotchGeometry {
         val gc = GraphicsEnvironment.getLocalGraphicsEnvironment().defaultScreenDevice.defaultConfiguration

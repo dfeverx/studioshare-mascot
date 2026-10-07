@@ -101,10 +101,10 @@ StudioFaceNotchCompanion(agent = agent, visible = true, onClose = {}, onOpenMain
 
 The notch companion follows [Coucou](https://github.com/Louis-CFM/coucou)'s Mochi.
 
-At rest the island is the notch with a wide ear either side, so it is always wider than the camera
-housing. The face sits in the left ear's outer corner and turns to watch the cursor anywhere on
-screen. The right ear shows a progress ring while something runs, or an amber pulse while something
-needs the user. There are no words at rest.
+At rest the island keeps the notch's own width and never grows wider than the camera housing. When
+it shows itself it grows a short row downward under the camera. The face sits on the row's left and
+turns to watch the cursor anywhere on screen. The row's right shows a progress ring while something
+runs, or an amber pulse while something needs the user. There are no words at rest.
 
 When something happens the notch opens downward into a card that is wide and short, so it only ever
 covers a strip under the menu bar:
@@ -112,7 +112,7 @@ covers a strip under the menu bar:
 - A message with a detail is two rows, with its buttons beside it rather than under it.
 - An upload shows its name over a bar the face rides along.
 
-The card is washed with the mood's colour and the face slides in from the ear. The motion is the
+The card is washed with the mood's colour and the face slides in from its row. The motion is the
 Dynamic Island's: a soft spring open, a firmer one closed, and content fading in out of a slight
 blur. Hovering keeps whatever is showing, and clicking the resting island opens it.
 
