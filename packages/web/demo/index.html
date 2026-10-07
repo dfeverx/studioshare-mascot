@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudioShare Mascot — Web Preview & Agent Testbed</title>
+  <style>
+    :root {
+      --bg: #141416;
+      --card-bg: #1E1E24;
+      --text: #F4F4F6;
+      --accent: #FF5288;
+      --border: rgba(255, 255, 255, 0.1);
+    }
+    body.light {
+      --bg: #F4F4F6;
+      --card-bg: #FFFFFF;
+      --text: #141416;
+      --border: rgba(0, 0, 0, 0.1);
+    }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+    .container {
+      display: flex;
+      width: 100%;
+      height: 100%;
+      padding: 24px;
+      gap: 24px;
+      box-sizing: border-box;
+    }
+    .viewport-card {
+      flex: 1;
+      background: var(--card-bg);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 700;
+    }
+    .canvas-container {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      background: rgba(0, 0, 0, 0.15);
+      border-radius: 12px;
+    }
+    canvas {
+      width: 200px;
+      height: 200px;
+    }
+    .badge {
+      position: absolute;
+      bottom: 16px;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(8px);
+      color: var(--accent);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .controls-card {
+      width: 380px;
+      background: var(--card-bg);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow-y: auto;
+    }
+    h2 {
+      margin: 0;
+      font-size: 15px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--accent);
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    label {
+      font-size: 12px;
+      opacity: 0.7;
+    }
+    select, button, input {
+      background: rgba(125, 125, 125, 0.1);
+      border: 1px solid var(--border);
+      color: inherit;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      outline: none;
+      cursor: pointer;
+    }
+    button.primary {
+      background: var(--accent);
+      color: white;
+      border: none;
+      font-weight: 600;
+    }
+    button:hover {
+      opacity: 0.9;
+    }
+    .mood-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .chip {
+      padding: 4px 10px;
+      font-size: 11px;
+      border-radius: 12px;
+      background: rgba(125, 125, 125, 0.15);
+      border: 1px solid var(--border);
+      cursor: pointer;
+    }
+    .chip.active {
+      background: var(--accent);
+      color: white;
+      border-color: transparent;
+    }
+    .status-box {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="viewport-card">
+      <div class="header">
+        <h1>StudioShare Mascot — Canvas Player</h1>
+        <button id="toggleThemeBtn">Toggle Theme</button>
+      </div>
+      <div class="canvas-container">
+        <canvas id="mascotCanvas" width="400" height="400"></canvas>
+        <div class="badge" id="currentMoodBadge">Mood: idle</div>
+      </div>
+    </div>
+
+    <div class="controls-card">
+      <h2>Character Presets</h2>
+      <div class="form-group">
+        <label>Select Mood</label>
+        <div class="mood-chips" id="moodChips"></div>
+      </div>
+
+      <h2>Background Agent Tester</h2>
+      <div class="status-box" id="agentStatus">Agent: Idle</div>
+      <button class="primary" id="btnSimulateUpload">Simulate Background Upload</button>
+      <button id="btnTriggerWarning">Trigger Storage Warning</button>
+      <button id="btnTriggerAlert">Trigger Booking Alert</button>
+      <button id="btnNotificationPerm">Request Web Notification Permission</button>
+
+      <h2>Pack Manifest</h2>
+      <div class="status-box" id="packInfo">Loading manifest...</div>
+    </div>
+  </div>
+
+  <script type="module">
+    let pack = null;
+    let currentMood = 'idle';
+    let isDark = true;
+    let animId = null;
+    const canvas = document.getElementById('mascotCanvas');
+    const ctx = canvas.getContext('2d');
+    const badge = document.getElementById('currentMoodBadge');
+    const packInfo = document.getElementById('packInfo');
+    const chipsContainer = document.getElementById('moodChips');
+    const agentStatus = document.getElementById('agentStatus');
+
+    const moods = [
+      'idle', 'walk', 'happy', 'uploading', 'careful', 'celebrating', 'proud',
+      'thinking', 'searching', 'scanning', 'sleepy', 'excited', 'curious',
+      'focused', 'locked', 'oops', 'sad', 'shy', 'patient', 'waiting', 'hot', 'goodbye'
+    ];
+
+    moods.forEach(m => {
+      const chip = document.createElement('div');
+      chip.className = `chip ${m === currentMood ? 'active' : ''}`;
+      chip.textContent = m;
+      chip.onclick = () => selectMood(m);
+      chipsContainer.appendChild(chip);
+    });
+
+    document.getElementById('toggleThemeBtn').onclick = () => {
+      isDark = !isDark;
+      document.body.className = isDark ? '' : 'light';
+      playMood(currentMood);
+    };
+
+    function selectMood(m) {
+      currentMood = m;
+      document.querySelectorAll('.chip').forEach(c => {
+        c.className = `chip ${c.textContent === m ? 'active' : ''}`;
+      });
+      badge.textContent = `Mood: ${m}`;
+      playMood(m);
+    }
+
+    async function loadPack() {
+      try {
+        const res = await fetch('../../pipeline/dist/manifest.json');
+        if (!res.ok) throw new Error('Not found');
+        pack = await res.json();
+        packInfo.innerHTML = `<strong>Version:</strong> v${pack.version}<br/><strong>Hash:</strong> ${pack.hash}<br/><strong>Moods:</strong> ${Object.keys(pack.moods).length}`;
+        playMood(currentMood);
+      } catch (e) {
+        packInfo.innerHTML = 'Pack not loaded. Build it with <code>npm run pack</code>.';
+      }
+    }
+
+    function playMood(moodName) {
+      if (!pack) return;
+      if (animId) cancelAnimationFrame(animId);
+
+      const m = pack.moods[moodName] || pack.moods.idle;
+      const theme = isDark ? 'dark' : 'light';
+      const atlasRel = m.atlas ? (m.atlas[theme] || m.atlas.light || m.atlas.dark) : null;
+      if (!atlasRel) return;
+
+      const img = new Image();
+      img.src = `../../pipeline/dist/${atlasRel}`;
+      img.onload = () => {
+        const { w, h } = pack.frame;
+        const frames = m.frames || 1;
+        const cols = m.cols || 1;
+        const fps = m.fps || 12;
+        const start = performance.now();
+
+        function render(now) {
+          const t = (now - start) / 1000;
+          const raw = Math.floor(t * fps);
+          const i = raw < frames ? raw : (m.loopFrom || 0) + ((raw - (m.loopFrom || 0)) % (frames - (m.loopFrom || 0)));
+
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          const s = 0.025 * (0.5 + 0.5 * Math.sin((t * 2 * Math.PI) / 3.2));
+          ctx.save();
+          ctx.translate(canvas.width / 2, canvas.height);
+          ctx.scale(1 - s * 0.4, 1 + s);
+          ctx.drawImage(img, (i % cols) * w, Math.floor(i / cols) * h, w, h, -canvas.width / 2, -canvas.height, canvas.width, canvas.height);
+          ctx.restore();
+          animId = requestAnimationFrame(render);
+        }
+        animId = requestAnimationFrame(render);
+      };
+    }
+
+    // Agent simulation
+    document.getElementById('btnSimulateUpload').onclick = async () => {
+      selectMood('uploading');
+      for (let i = 0; i <= 100; i += 10) {
+        agentStatus.innerHTML = `Agent: Uploading Photos (${i}%)`;
+        document.title = `(${i}%) Uploading | StudioShare`;
+        await new Promise(r => setTimeout(r, 300));
+      }
+      selectMood('celebrating');
+      agentStatus.innerHTML = `Agent: Upload Complete! 🎉`;
+      document.title = `✨ Upload Complete | StudioShare`;
+      if (Notification.permission === 'granted' && document.hidden) {
+        new Notification('✨ Upload Complete', { body: '100 photos successfully backed up.' });
+      }
+    };
+
+    document.getElementById('btnTriggerWarning').onclick = () => {
+      selectMood('careful');
+      agentStatus.innerHTML = `⚠️ Agent: Storage Warning (1.5GB left)`;
+      document.title = `⚠️ Low Storage | StudioShare`;
+      if (Notification.permission === 'granted' && document.hidden) {
+        new Notification('⚠️ StudioShare Warning', { body: 'Storage running low (1.5 GB left).' });
+      }
+    };
+
+    document.getElementById('btnTriggerAlert').onclick = () => {
+      selectMood('celebrating');
+      agentStatus.innerHTML = `✨ Agent: New Wedding Shoot Booked!`;
+      document.title = `✨ New Booking | StudioShare`;
+      if (Notification.permission === 'granted' && document.hidden) {
+        new Notification('✨ New Booking!', { body: 'David & Lisa confirmed wedding package.' });
+      }
+    };
+
+    document.getElementById('btnNotificationPerm').onclick = () => {
+      if ('Notification' in window) {
+        Notification.requestPermission().then(p => alert('Permission: ' + p));
+      }
+    };
+
+    loadPack();
+  </script>
+</body>
+</html>

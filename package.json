@@ -1,0 +1,18 @@
+{
+  "name": "studioshare-mascot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "StudioShare Mascot: 3D character pipeline, Compose Multiplatform & Web SDKs, and Desktop Background Agent",
+  "type": "module",
+  "scripts": {
+    "pack": "node pipeline/tools/pack.mjs",
+    "pack:sync": "node pipeline/tools/pack.mjs --sync-apps",
+    "test:kmp": "./gradlew :mascot-core:jvmTest",
+    "test:all": "./gradlew check",
+    "run:desktop-preview": "./gradlew :mascot-preview:run",
+    "typecheck:web": "npm --prefix packages/web run typecheck"
+  },
+  "dependencies": {
+    "sharp": "^0.33.5"
+  }
+}

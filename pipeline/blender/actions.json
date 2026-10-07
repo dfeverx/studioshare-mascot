@@ -1,0 +1,418 @@
+{
+  "$comment": "Edit freely: render.py reads this. Run actions.mjs again to add new moods/clips without touching these.",
+  "model": {
+    "armature": "",
+    "outfitMaterials": {
+      "light": "Outfit_Black",
+      "dark": "Outfit_White"
+    },
+    "faceMaterial": "Face",
+    "faceImageNode": "FaceTex",
+    "facesDir": "Brand/mascot/model/faces",
+    "propsCollection": "Props",
+    "props": {
+      "box": "prop_box",
+      "cloud": "prop_cloud",
+      "laptop": "prop_laptop",
+      "magnifier": "prop_magnifier",
+      "question": "prop_question",
+      "exclaim": "prop_exclaim",
+      "zzz": "prop_zzz",
+      "sparks": "prop_sparks",
+      "confetti": "prop_confetti",
+      "heart": "prop_heart",
+      "plug": "prop_plug",
+      "unplug": "prop_cable",
+      "key": "prop_key",
+      "sweat": "prop_sweat",
+      "hourglass": "prop_hourglass",
+      "check": "prop_check",
+      "phone": "prop_phone",
+      "envelope": "prop_envelope",
+      "star": "prop_star",
+      "camera": "prop_camera",
+      "faceframe": [
+        "prop_faceframe",
+        "prop_scanline"
+      ],
+      "bulb": "prop_bulb"
+    },
+    "restAction": "idle"
+  },
+  "camera": {
+    "front": "-Y",
+    "yawDegrees": 20,
+    "pitchDegrees": 6,
+    "margin": 1.4,
+    "footroom": 0.04
+  },
+  "render": {
+    "width": 400,
+    "height": 560,
+    "engine": "CYCLES",
+    "samples": 24,
+    "fps": 12,
+    "maxFrames": 10,
+    "lights": "auto",
+    "lightScale": 0.45
+  },
+  "moods": {
+    "idle": {
+      "action": "idle",
+      "mixamo": "Breathing Idle",
+      "face": "smile",
+      "props": [],
+      "loop": true
+    },
+    "waiting": {
+      "action": "waiting",
+      "mixamo": "Idle (looking around)",
+      "face": "smile",
+      "props": [],
+      "loop": true
+    },
+    "shy": {
+      "action": "shy",
+      "mixamo": "Bashful",
+      "face": "smile",
+      "props": [],
+      "loop": true
+    },
+    "happy": {
+      "action": "happy",
+      "mixamo": "Waving",
+      "face": "happy",
+      "props": [
+        "sparks"
+      ],
+      "loop": true
+    },
+    "celebrating": {
+      "action": "celebrating",
+      "mixamo": "Jumping / Victory",
+      "face": "happy",
+      "props": [
+        "confetti"
+      ],
+      "loop": true
+    },
+    "proud": {
+      "action": "proud",
+      "mixamo": "Presenting / Standing Arguing (one arm sweep)",
+      "face": "cool",
+      "props": [
+        "star"
+      ],
+      "loop": true
+    },
+    "curious": {
+      "action": "curious",
+      "mixamo": "Looking Around",
+      "face": "thinking",
+      "props": [
+        "question"
+      ],
+      "loop": true
+    },
+    "excited": {
+      "action": "excited",
+      "mixamo": "Excited",
+      "face": "surprised",
+      "props": [
+        "exclaim"
+      ],
+      "loop": true
+    },
+    "focused": {
+      "action": "focused",
+      "mixamo": "Typing (seated) or Looking Down",
+      "face": "focused",
+      "props": [
+        "laptop"
+      ],
+      "loop": true
+    },
+    "carrying": {
+      "action": "carrying",
+      "mixamo": "Walking (carrying) / Box Walk",
+      "face": "focused",
+      "props": [
+        "box"
+      ],
+      "loop": true
+    },
+    "thinking": {
+      "action": "thinking",
+      "mixamo": "Thinking",
+      "face": "thinking",
+      "props": [
+        "bulb"
+      ],
+      "loop": true
+    },
+    "searching": {
+      "action": "searching",
+      "mixamo": "Looking Around",
+      "face": "thinking",
+      "props": [
+        "magnifier"
+      ],
+      "loop": true
+    },
+    "connecting": {
+      "action": "connecting",
+      "mixamo": "Standing Idle (arms forward)",
+      "face": "smile",
+      "props": [
+        "plug"
+      ],
+      "loop": true
+    },
+    "connected": {
+      "action": "connected",
+      "mixamo": "Thumbs Up",
+      "face": "happy",
+      "props": [
+        "check"
+      ],
+      "loop": false
+    },
+    "disconnected": {
+      "action": "disconnected",
+      "mixamo": "Shrugging",
+      "face": "sad",
+      "props": [
+        "unplug"
+      ],
+      "loop": true
+    },
+    "sleepy": {
+      "action": "sleepy",
+      "mixamo": "Sleeping Idle / Sitting Idle",
+      "face": "sleepy",
+      "props": [
+        "zzz"
+      ],
+      "loop": true
+    },
+    "hot": {
+      "action": "hot",
+      "mixamo": "Tired / Wiping Sweat",
+      "face": "worried",
+      "props": [
+        "sweat"
+      ],
+      "loop": true
+    },
+    "patient": {
+      "action": "patient",
+      "mixamo": "Checking Watch",
+      "face": "smile",
+      "props": [
+        "hourglass"
+      ],
+      "loop": true
+    },
+    "oops": {
+      "action": "oops",
+      "mixamo": "Head Scratch / Embarrassed",
+      "face": "worried",
+      "props": [
+        "sweat"
+      ],
+      "loop": true
+    },
+    "sad": {
+      "action": "sad",
+      "mixamo": "Sad Idle",
+      "face": "sad",
+      "props": [],
+      "loop": true
+    },
+    "locked": {
+      "action": "locked",
+      "mixamo": "Standing Idle",
+      "face": "worried",
+      "props": [
+        "key"
+      ],
+      "loop": true
+    },
+    "careful": {
+      "action": "careful",
+      "mixamo": "Stop Gesture / Defeated (palms up)",
+      "face": "worried",
+      "props": [
+        "exclaim"
+      ],
+      "loop": true
+    },
+    "goodbye": {
+      "action": "goodbye",
+      "mixamo": "Waving (walking)",
+      "face": "happy",
+      "props": [],
+      "loop": false
+    },
+    "ok": {
+      "action": "ok",
+      "mixamo": "Thumbs Up",
+      "face": "wink",
+      "props": [
+        "check"
+      ],
+      "loop": false
+    },
+    "scanning": {
+      "action": "scanning",
+      "mixamo": "Idle (holding item)",
+      "face": "scan",
+      "props": [
+        "faceframe"
+      ],
+      "loop": true
+    },
+    "walk": {
+      "action": "walk",
+      "mixamo": "Walking / Running",
+      "face": "smile",
+      "props": [],
+      "loop": true
+    },
+    "glance": {
+      "action": "glance",
+      "mixamo": "Head Turn",
+      "face": "wink",
+      "props": [],
+      "loop": false
+    },
+    "uploading": {
+      "action": "uploading",
+      "mixamo": "Walking (carrying)",
+      "face": "focused",
+      "props": [
+        "cloud"
+      ],
+      "loop": true
+    },
+    "sending": {
+      "action": "sending",
+      "mixamo": "Throw",
+      "face": "happy",
+      "props": [
+        "envelope"
+      ],
+      "loop": true
+    },
+    "capturing": {
+      "action": "capturing",
+      "mixamo": "Taking a Photo / Idle (holding item)",
+      "face": "smile",
+      "props": [
+        "camera"
+      ],
+      "loop": true
+    }
+  },
+  "clips": {
+    "auth.studioLaunched": {
+      "action": "celebrating",
+      "mixamo": "",
+      "face": "happy",
+      "props": [
+        "confetti",
+        "sparks"
+      ],
+      "loop": false
+    },
+    "event.published": {
+      "action": "proud",
+      "mixamo": "",
+      "face": "cool",
+      "props": [
+        "star",
+        "sparks"
+      ],
+      "loop": false
+    },
+    "capture.firstPhoto": {
+      "action": "capturing",
+      "mixamo": "",
+      "face": "happy",
+      "props": [
+        "camera",
+        "sparks"
+      ],
+      "loop": false
+    },
+    "upload.done": {
+      "action": "celebrating",
+      "mixamo": "",
+      "face": "happy",
+      "props": [
+        "cloud",
+        "check"
+      ],
+      "loop": false
+    },
+    "cull.sent": {
+      "action": "ok",
+      "mixamo": "",
+      "face": "wink",
+      "props": [
+        "box",
+        "check"
+      ],
+      "loop": false
+    },
+    "cull.running": {
+      "action": "waiting",
+      "mixamo": "",
+      "face": "smile",
+      "props": [
+        "hourglass"
+      ],
+      "loop": true
+    },
+    "selection.completed": {
+      "action": "celebrating",
+      "mixamo": "",
+      "face": "happy",
+      "props": [
+        "heart",
+        "confetti"
+      ],
+      "loop": false
+    },
+    "orbit.newBooking": {
+      "action": "excited",
+      "mixamo": "",
+      "face": "surprised",
+      "props": [
+        "envelope",
+        "exclaim"
+      ],
+      "loop": false
+    },
+    "orbit.paidInFull": {
+      "action": "celebrating",
+      "mixamo": "",
+      "face": "happy",
+      "props": [
+        "star",
+        "confetti"
+      ],
+      "loop": false
+    },
+    "website.live": {
+      "action": "proud",
+      "mixamo": "",
+      "face": "cool",
+      "props": [
+        "sparks",
+        "star"
+      ],
+      "loop": false
+    }
+  }
+}

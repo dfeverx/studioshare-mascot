@@ -1,0 +1,2514 @@
+{
+  "$comment": "StudioShare mascot — the one file to edit. moods: how each mood looks — the code-drawn rig's face, arms, prop and motion (or frame atlases from src/<mood>/<light|dark>/ when 3D renders exist). moments: what the mascot does at each moment in the app (keys are code constants: append-only, never rename). Run `node tools/mascot/pack.mjs --sync` after editing. Spec: the 'StudioShare Mascot — Expression & Moment Map' doc.",
+  "schema": 1,
+  "frame": {
+    "w": 200,
+    "h": 280
+  },
+  "moods": {
+    "idle": {
+      "code": "M01",
+      "fps": 12,
+      "motion": "breathe",
+      "face": "smile",
+      "arms": "down",
+      "prop": "none",
+      "pose": "standing relaxed, arms loosely at its sides, soft gentle smile"
+    },
+    "waiting": {
+      "code": "M02",
+      "fps": 2,
+      "motion": "breathe",
+      "face": "smile",
+      "arms": "hips",
+      "prop": "none",
+      "pose": "standing upright and leaning slightly forward, hands behind its back, attentive smile, eyes on the viewer",
+      "keyframes": [
+        "head and eyes turned to its left",
+        "head and eyes turned to its right"
+      ]
+    },
+    "shy": {
+      "code": "M03",
+      "fps": 12,
+      "motion": "sway",
+      "face": "smile",
+      "arms": "cover",
+      "prop": "none",
+      "pose": "both hands covering its eyes, one finger lifted to peek through, head turned a little away"
+    },
+    "happy": {
+      "code": "M04",
+      "fps": 4,
+      "motion": "hop",
+      "face": "happy",
+      "arms": "wave",
+      "prop": "sparks",
+      "pose": "closed-eye happy smile (eyes are upward arcs), one hand raised high in a wave, tiny yellow sparkles",
+      "keyframes": [
+        "waving hand tilted outward",
+        "waving hand tilted inward"
+      ]
+    },
+    "celebrating": {
+      "code": "M05",
+      "fps": 4,
+      "motion": "jump",
+      "face": "happy",
+      "arms": "cheer",
+      "prop": "confetti",
+      "pose": "jumping in the air, both arms raised, big open smile, star-shaped glowing eyes, small yellow confetti around it",
+      "keyframes": [
+        "crouched just before the jump, arms down, same big smile",
+        "highest point of the jump, arms up, confetti bursting"
+      ]
+    },
+    "proud": {
+      "code": "M06",
+      "fps": 12,
+      "motion": "pop",
+      "face": "cool",
+      "arms": "point",
+      "prop": "star",
+      "pose": "confident smile, one arm sweeping out to the side presenting something (\"ta-da\"), a small yellow sparkle at the hand"
+    },
+    "curious": {
+      "code": "M07",
+      "fps": 12,
+      "motion": "sway",
+      "face": "thinking",
+      "arms": "down",
+      "prop": "question",
+      "pose": "head tilted, one eye a little bigger, leaning in as if peeking around a corner, small yellow question mark beside the head"
+    },
+    "excited": {
+      "code": "M08",
+      "fps": 12,
+      "motion": "pop",
+      "face": "surprised",
+      "arms": "cheer",
+      "prop": "exclaim",
+      "pose": "wide round surprised eyes, up on its toes, pointing forward with one hand, two yellow exclamation marks above the head"
+    },
+    "focused": {
+      "code": "M09",
+      "fps": 12,
+      "motion": "breathe",
+      "face": "focused",
+      "arms": "carry",
+      "prop": "laptop",
+      "pose": "squinting focused eyes, leaning in, holding a small photographer's loupe up to one eye"
+    },
+    "carrying": {
+      "code": "M10",
+      "fps": 4,
+      "motion": "trot",
+      "face": "focused",
+      "arms": "carry",
+      "prop": "box",
+      "pose": "walking to the right with determined eyes, carrying a cardboard box in both arms",
+      "keyframes": [
+        "same, left foot forward",
+        "same, right foot forward"
+      ],
+      "loopFrom": 1
+    },
+    "thinking": {
+      "code": "M11",
+      "fps": 2,
+      "motion": "sway",
+      "face": "thinking",
+      "arms": "chin",
+      "prop": "question",
+      "pose": "eyes looking up, one hand on its chin, three small yellow dots above its head",
+      "keyframes": [
+        "eyes looking up-left",
+        "eyes looking up-right"
+      ]
+    },
+    "searching": {
+      "code": "M12",
+      "fps": 3,
+      "motion": "sway",
+      "face": "thinking",
+      "arms": "point",
+      "prop": "magnifier",
+      "pose": "holding a big magnifying glass, eyes looking sideways through it",
+      "keyframes": [
+        "magnifying glass swept to its left",
+        "magnifying glass swept to its right"
+      ]
+    },
+    "connecting": {
+      "code": "M13",
+      "fps": 12,
+      "motion": "breathe",
+      "face": "smile",
+      "arms": "carry",
+      "prop": "plug",
+      "pose": "hopeful smile, holding a cable plug out in both hands toward the side"
+    },
+    "connected": {
+      "code": "M14",
+      "fps": 12,
+      "motion": "hop",
+      "face": "happy",
+      "arms": "thumbs",
+      "prop": "check",
+      "pose": "satisfied smile, a plug clicked into a small socket with a yellow spark, thumbs-up with the free hand"
+    },
+    "disconnected": {
+      "code": "M15",
+      "fps": 12,
+      "motion": "droop",
+      "face": "sad",
+      "arms": "shrug",
+      "prop": "unplug",
+      "pose": "sad eyes, shrugging, holding an unplugged cable that dangles from one hand"
+    },
+    "sleepy": {
+      "code": "M16",
+      "fps": 8,
+      "motion": "slow",
+      "face": "sleepy",
+      "arms": "down",
+      "prop": "zzz",
+      "pose": "eyes closed, slumped and drooping, head tilted, yellow \"zzz\" above it"
+    },
+    "hot": {
+      "code": "M17",
+      "fps": 12,
+      "motion": "droop",
+      "face": "worried",
+      "arms": "down",
+      "prop": "sweat",
+      "pose": "tired eyes, a sweat drop on its face, fanning itself with one hand"
+    },
+    "patient": {
+      "code": "M18",
+      "fps": 12,
+      "motion": "breathe",
+      "face": "smile",
+      "arms": "hips",
+      "prop": "hourglass",
+      "pose": "calm neutral face, glancing at a wristwatch on one wrist, one foot lifted to tap, a small yellow hourglass beside it"
+    },
+    "oops": {
+      "code": "M19",
+      "fps": 12,
+      "motion": "shake",
+      "face": "worried",
+      "arms": "shrug",
+      "prop": "sweat",
+      "pose": "sheepish face with swirl eyes, scratching the back of its cap, a dropped photo card at its feet"
+    },
+    "sad": {
+      "code": "M20",
+      "fps": 12,
+      "motion": "droop",
+      "face": "sad",
+      "arms": "down",
+      "prop": "none",
+      "pose": "downturned eyes with a single tear, shoulders dropped, arms hanging"
+    },
+    "locked": {
+      "code": "M21",
+      "fps": 12,
+      "motion": "droop",
+      "face": "worried",
+      "arms": "down",
+      "prop": "key",
+      "pose": "neutral face, standing beside a small closed door, holding up a key"
+    },
+    "careful": {
+      "code": "M22",
+      "fps": 12,
+      "motion": "pop",
+      "face": "worried",
+      "arms": "stop",
+      "prop": "exclaim",
+      "pose": "worried brow, both open palms raised forward (\"hold on\"), one foot stepping back"
+    },
+    "goodbye": {
+      "code": "M23",
+      "fps": 4,
+      "motion": "sway",
+      "face": "happy",
+      "arms": "wave",
+      "prop": "none",
+      "pose": "warm smile, waving while starting to turn and walk away",
+      "keyframes": [
+        "waving hand tilted outward",
+        "waving hand tilted inward"
+      ]
+    },
+    "ok": {
+      "code": "M24",
+      "fps": 12,
+      "motion": "nod",
+      "face": "wink",
+      "arms": "thumbs",
+      "prop": "check",
+      "pose": "winking, one thumbs-up, a small yellow tick beside it"
+    },
+    "scanning": {
+      "code": "M25",
+      "fps": 4,
+      "motion": "breathe",
+      "face": "scan",
+      "arms": "point",
+      "prop": "faceframe",
+      "pose": "calm, eyes glowing brighter like a scanner, holding up a photo card with a face on it; yellow corner brackets around the face",
+      "keyframes": [
+        "a thin glowing pink horizontal scan line across the top of the photo",
+        "the scan line across the middle of the photo",
+        "the scan line across the bottom of the photo"
+      ]
+    },
+    "walk": {
+      "code": "W01",
+      "fps": 6,
+      "motion": "trot",
+      "face": "smile",
+      "arms": "down",
+      "prop": "none",
+      "pose": "running to the right, seen from the front three-quarter, happy",
+      "keyframes": [
+        "right leg forward, left arm forward",
+        "left leg forward, right arm forward"
+      ],
+      "loopFrom": 1
+    },
+    "glance": {
+      "code": "G01",
+      "fps": 12,
+      "motion": "nod",
+      "face": "wink",
+      "arms": "down",
+      "prop": "none",
+      "pose": "a quick wink, head turned toward the viewer, arms down"
+    },
+    "uploading": {
+      "code": "M10b",
+      "fps": 4,
+      "motion": "trot",
+      "face": "focused",
+      "arms": "carry",
+      "prop": "cloud",
+      "pose": "walking to the right carrying a big yellow cloud with an upward arrow on it",
+      "keyframes": [
+        "same, left foot forward",
+        "same, right foot forward"
+      ],
+      "loopFrom": 1
+    },
+    "sending": {
+      "code": "M10c",
+      "fps": 12,
+      "motion": "trot",
+      "face": "happy",
+      "arms": "carry",
+      "prop": "envelope",
+      "pose": "happily throwing a white paper plane forward with one hand"
+    },
+    "capturing": {
+      "code": "M09b",
+      "fps": 12,
+      "motion": "breathe",
+      "face": "smile",
+      "arms": "camera",
+      "prop": "camera",
+      "pose": "holding a black DSLR camera up to its face with both hands, taking a photo"
+    }
+  },
+  "moments": {
+    "account.linked": {
+      "mood": "happy",
+      "action": "Key clicks into a lock"
+    },
+    "account.nudge": {
+      "mood": "curious",
+      "hold": true,
+      "action": "Holds a key, offers it; never blocks"
+    },
+    "app.activity": {
+      "mood": "happy"
+    },
+    "app.idle": {
+      "mood": "idle"
+    },
+    "app.longIdle": {
+      "mood": "sleepy",
+      "action": "Dozes; wakes on any input"
+    },
+    "app.navigated": {
+      "mood": "glance"
+    },
+    "app.tapped": {
+      "mood": "happy"
+    },
+    "app.welcomeBack": {
+      "mood": "happy"
+    },
+    "attendees.empty": {
+      "mood": "curious",
+      "hold": true,
+      "action": "Holds a blank guest list"
+    },
+    "attendees.importing": {
+      "mood": "carrying",
+      "hold": true,
+      "action": "Carries a stack of name cards"
+    },
+    "auth.browserWaiting": {
+      "mood": "patient",
+      "hold": true,
+      "action": "Looks at an open browser window icon, taps foot; slows after 20 s"
+    },
+    "auth.otp": {
+      "mood": "shy",
+      "hold": true,
+      "action": "Covers eyes, peeks between fingers; one finger lifts per digit typed"
+    },
+    "auth.phone": {
+      "mood": "waiting",
+      "hold": true,
+      "action": "Eyes follow the caret; nods per digit group"
+    },
+    "auth.signOut": {
+      "mood": "goodbye",
+      "action": "Waves, switches off a light"
+    },
+    "auth.signedIn": {
+      "mood": "happy",
+      "action": "Wave, then walks out of frame into the app"
+    },
+    "auth.studioLaunched": {
+      "mood": "celebrating",
+      "first": "studio-launched",
+      "action": "Biggest celebration in the app: confetti, flash burst"
+    },
+    "auth.studioName": {
+      "mood": "waiting",
+      "hold": true,
+      "action": "Holds a blank sign; letters appear on it as typed"
+    },
+    "auth.verifying": {
+      "mood": "thinking",
+      "hold": true,
+      "action": "Holds the code up to the light"
+    },
+    "auth.welcome": {
+      "mood": "waiting",
+      "hold": true,
+      "action": "Small wave, then looks from button to button as the pointer or focus moves"
+    },
+    "auth.wrongCode": {
+      "mood": "oops",
+      "action": "Head shake, the code card crumples"
+    },
+    "billing.purchased": {
+      "mood": "celebrating",
+      "action": "Gate lifts, coins drop"
+    },
+    "campaign.delivered": {
+      "mood": "celebrating",
+      "action": "Empty bag waved overhead"
+    },
+    "campaign.sending": {
+      "mood": "sending",
+      "hold": true,
+      "action": "Postbag empties as the count rises"
+    },
+    "capture.cameraFound": {
+      "mood": "connected",
+      "action": "Plug clicks in"
+    },
+    "capture.firstPhoto": {
+      "mood": "celebrating",
+      "first": "first-camera",
+      "action": "Catches the first photo in mid-air"
+    },
+    "capture.live": {
+      "mood": "capturing",
+      "hold": true,
+      "action": "Catches each photo as it arrives; a small hop on every 10th"
+    },
+    "capture.lost": {
+      "mood": "disconnected",
+      "hold": true,
+      "action": "Holds a loose cable"
+    },
+    "capture.problem": {
+      "mood": "oops",
+      "hold": true
+    },
+    "capture.quiet": {
+      "mood": "sleepy",
+      "hold": true,
+      "action": "Dozes holding the plug; wakes on the next photo"
+    },
+    "capture.setup": {
+      "mood": "capturing",
+      "hold": true,
+      "action": "Points at the camera menu item for that step; a new pointing pose per step"
+    },
+    "capture.stopConfirm": {
+      "mood": "careful",
+      "hold": true,
+      "action": "Hand on the plug"
+    },
+    "capture.waitingForCamera": {
+      "mood": "patient",
+      "hold": true,
+      "action": "Looks out of a window; idle gets slower after 30 s"
+    },
+    "cull.allDecided": {
+      "mood": "celebrating",
+      "action": "Small celebration in the header corner, 1.5 s, never blocks keys"
+    },
+    "cull.choose": {
+      "mood": "waiting",
+      "hold": true
+    },
+    "cull.empty": {
+      "mood": "curious",
+      "hold": true,
+      "action": "Holds a loupe over an empty table"
+    },
+    "cull.modelsDownloading": {
+      "mood": "carrying",
+      "hold": true,
+      "action": "Toolbox carried in; progress = steps"
+    },
+    "cull.modelsFailed": {
+      "mood": "oops",
+      "hold": true,
+      "action": "Toolbox dropped; counts down on its fingers"
+    },
+    "cull.paused": {
+      "mood": "sleepy",
+      "hold": true,
+      "action": "Asleep on the table; \"Resume\" wakes it"
+    },
+    "cull.review": {
+      "mood": "proud",
+      "action": "Presents the sorted piles, \"ta-da\""
+    },
+    "cull.running": {
+      "mood": "waiting",
+      "hold": true,
+      "action": "Waits for the cull to finish, eyes on the progress; small nod as each batch lands"
+    },
+    "cull.scanning": {
+      "mood": "scanning",
+      "hold": true,
+      "action": "Scan line sweeps across each frame, locking on faces and focus points"
+    },
+    "cull.sent": {
+      "mood": "celebrating",
+      "action": "Seals the box, hands it to the courier",
+      "first": "first-cull"
+    },
+    "cull.started": {
+      "mood": "excited",
+      "action": "Rolls up sleeves, cracks knuckles"
+    },
+    "cull.uploadConfirm": {
+      "mood": "waiting",
+      "hold": true,
+      "action": "Holds the box lid open"
+    },
+    "device.hot": {
+      "mood": "hot",
+      "hold": true,
+      "action": "Fans itself, then resumes"
+    },
+    "event.createForm": {
+      "mood": "waiting",
+      "hold": true,
+      "action": "Holds a clipboard and pen"
+    },
+    "event.deleteConfirm": {
+      "mood": "careful",
+      "hold": true,
+      "action": "Hands up; no cute animation on the confirm itself"
+    },
+    "event.deleted": {
+      "mood": "idle",
+      "action": "Small bow, fades out; no celebration"
+    },
+    "event.outOfCredits": {
+      "mood": "sad",
+      "hold": true,
+      "action": "Shows an empty wallet, points to \"Buy credits\""
+    },
+    "event.publishFailed": {
+      "mood": "oops",
+      "action": "Curtain stuck halfway"
+    },
+    "event.published": {
+      "mood": "proud",
+      "first": "first-event",
+      "action": "Curtain open, spotlight"
+    },
+    "event.publishing": {
+      "mood": "carrying",
+      "hold": true,
+      "action": "Raises a curtain"
+    },
+    "events.empty": {
+      "mood": "curious",
+      "hold": true,
+      "action": "Holds an empty frame; the three steps (create, upload, share) light up one by one as it points"
+    },
+    "events.error": {
+      "mood": "oops",
+      "hold": true,
+      "action": "Dropped clipboard; retry picks it up"
+    },
+    "events.noneInMonth": {
+      "mood": "searching",
+      "hold": true,
+      "action": "Flips calendar pages"
+    },
+    "export.done": {
+      "mood": "celebrating",
+      "action": "Hands over a ribbon-tied box; \"Open folder\""
+    },
+    "export.failed": {
+      "mood": "sad",
+      "action": "Empty box"
+    },
+    "export.preparing": {
+      "mood": "focused",
+      "hold": true,
+      "action": "Packs the basket"
+    },
+    "export.running": {
+      "mood": "carrying",
+      "hold": true,
+      "action": "Carries photos into a folder, speed = Mbps"
+    },
+    "export.stopped": {
+      "mood": "sleepy",
+      "action": "Puts box down, \"resume later\""
+    },
+    "faces.matched": {
+      "mood": "celebrating",
+      "action": "Hands each face its photos"
+    },
+    "faces.matching": {
+      "mood": "searching",
+      "hold": true,
+      "action": "Draws lines from faces to photos"
+    },
+    "faces.none": {
+      "mood": "searching",
+      "action": "Scans the photo, no bracket locks on, shrugs"
+    },
+    "faces.reading": {
+      "mood": "scanning",
+      "hold": true,
+      "action": "Scan line passes over each headshot"
+    },
+    "folder.created": {
+      "mood": "happy",
+      "action": "Drops the folder in place"
+    },
+    "folder.dropHover": {
+      "mood": "excited",
+      "hold": true,
+      "action": "Arms open to catch"
+    },
+    "folder.empty": {
+      "mood": "curious",
+      "hold": true,
+      "action": "Points to \"Import photos\"; on desktop, mimes dropping a file"
+    },
+    "hosts.empty": {
+      "mood": "curious",
+      "hold": true,
+      "action": "Holds an empty name badge"
+    },
+    "hosts.inviteSent": {
+      "mood": "sending",
+      "action": "Posts the envelope, waves"
+    },
+    "hosts.joined": {
+      "mood": "excited",
+      "action": "Opens the door, greets"
+    },
+    "hosts.removeConfirm": {
+      "mood": "careful",
+      "hold": true,
+      "action": "Respectful, hand on heart"
+    },
+    "import.copying": {
+      "mood": "carrying",
+      "hold": true,
+      "action": "Carries photos one by one; pace follows progress"
+    },
+    "import.diskFull": {
+      "mood": "hot",
+      "hold": true,
+      "action": "Squashed by an overflowing box"
+    },
+    "import.done": {
+      "mood": "happy",
+      "action": "Dusts off its hands"
+    },
+    "import.driveOut": {
+      "mood": "disconnected",
+      "hold": true,
+      "action": "Holds an empty card slot"
+    },
+    "import.failed": {
+      "mood": "sad",
+      "action": "Sits on an empty box"
+    },
+    "import.originalsRead": {
+      "mood": "ok",
+      "action": "Thumbs-up, unplugs gently"
+    },
+    "import.readingOriginals": {
+      "mood": "careful",
+      "hold": true,
+      "action": "Holds the drive cable steady with both hands"
+    },
+    "import.review": {
+      "mood": "focused",
+      "hold": true,
+      "action": "Flips through a stack"
+    },
+    "orbit.editing": {
+      "mood": "focused",
+      "hold": true,
+      "action": "Calculator (quote) / writes the invoice"
+    },
+    "orbit.empty": {
+      "mood": "curious",
+      "hold": true,
+      "action": "Holds the booking-page link up"
+    },
+    "orbit.jobRestored": {
+      "mood": "happy",
+      "action": "Lifts the job out of the bin, dusts it"
+    },
+    "orbit.newBooking": {
+      "mood": "excited",
+      "first": "first-booking",
+      "action": "Pops up from the inbox with a ringing bell"
+    },
+    "orbit.paidInFull": {
+      "mood": "celebrating",
+      "first": "first-paid",
+      "action": "Jar full, coins sparkle"
+    },
+    "orbit.paymentRecorded": {
+      "mood": "happy",
+      "action": "Coin drops into a jar"
+    },
+    "orbit.quoteSent": {
+      "mood": "sending",
+      "action": "Paper plane"
+    },
+    "orbit.voidConfirm": {
+      "mood": "careful",
+      "hold": true,
+      "action": "Serious; no animation on the button"
+    },
+    "selection.completed": {
+      "mood": "celebrating",
+      "first": "first-selection",
+      "action": "All baskets lined up, confetti"
+    },
+    "selection.inProgress": {
+      "mood": "thinking",
+      "hold": true,
+      "action": "Watches hearts drop into the basket; one bounce per pick, throttled"
+    },
+    "selection.invited": {
+      "mood": "sending",
+      "action": "Posts an envelope with a heart"
+    },
+    "selection.notStarted": {
+      "mood": "curious",
+      "hold": true,
+      "action": "Holds an empty heart-shaped basket"
+    },
+    "selection.reset": {
+      "mood": "ok",
+      "action": "Fresh empty basket"
+    },
+    "selection.started": {
+      "mood": "excited",
+      "action": "Ears up, \"they've started!\""
+    },
+    "share.copied": {
+      "mood": "ok",
+      "action": "Wink"
+    },
+    "share.publicConfirm": {
+      "mood": "careful",
+      "hold": true,
+      "action": "Serious, hands up"
+    },
+    "share.publicLive": {
+      "mood": "proud",
+      "action": "Door open, sign \"Open\""
+    },
+    "share.qr": {
+      "mood": "proud",
+      "action": "Holds the QR sign up"
+    },
+    "state.backOnline": {
+      "mood": "connected",
+      "action": "Plugs back in, one spark"
+    },
+    "state.deleted": {
+      "mood": "idle",
+      "action": "No celebration"
+    },
+    "state.done": {
+      "mood": "ok",
+      "action": "Thumbs-up"
+    },
+    "state.error": {
+      "mood": "oops",
+      "action": "Scratches head"
+    },
+    "state.info": {
+      "mood": "glance"
+    },
+    "state.loadingSlow": {
+      "mood": "patient",
+      "hold": true,
+      "action": "Taps foot, glances at watch"
+    },
+    "state.noResults": {
+      "mood": "searching",
+      "action": "Magnifier; \"Clear search\""
+    },
+    "state.offline": {
+      "mood": "disconnected",
+      "hold": true,
+      "action": "Holds an unplugged cable"
+    },
+    "state.permission": {
+      "mood": "locked",
+      "hold": true,
+      "action": "Points at a settings gear"
+    },
+    "state.saved": {
+      "mood": "ok",
+      "action": "Wink"
+    },
+    "state.sent": {
+      "mood": "sending",
+      "action": "Paper plane"
+    },
+    "state.sessionExpired": {
+      "mood": "locked",
+      "hold": true,
+      "action": "At a closed door holding the key; \"Sign in again\""
+    },
+    "state.validation": {
+      "mood": "careful",
+      "action": "Points at the first bad field"
+    },
+    "state.warning": {
+      "mood": "careful"
+    },
+    "storage.open": {
+      "mood": "focused",
+      "hold": true
+    },
+    "team.empty": {
+      "mood": "curious",
+      "hold": true,
+      "action": "Lone at a long table"
+    },
+    "team.memberAdded": {
+      "mood": "happy",
+      "action": "Puts the lanyard on a new figure"
+    },
+    "update.available": {
+      "mood": "excited",
+      "action": "Holds a new box with a bow"
+    },
+    "update.required": {
+      "mood": "careful",
+      "hold": true,
+      "action": "Stands at the gate, \"update to continue\""
+    },
+    "upload.creditsLow": {
+      "mood": "careful",
+      "hold": true,
+      "action": "Wallet almost empty, coin counting"
+    },
+    "upload.done": {
+      "mood": "celebrating",
+      "first": "first-upload",
+      "action": "Drops the last box into the cloud, cloud gets a tick"
+    },
+    "upload.facesReading": {
+      "mood": "scanning",
+      "hold": true,
+      "action": "Scan line sweeps over each photo; a bracket locks on every face found"
+    },
+    "upload.failed": {
+      "mood": "oops",
+      "hold": true,
+      "action": "Box tipped over, one photo out"
+    },
+    "upload.offline": {
+      "mood": "disconnected",
+      "hold": true,
+      "action": "Box held, waiting at a closed road"
+    },
+    "upload.outOfCredits": {
+      "mood": "sad",
+      "hold": true,
+      "action": "Box stuck at a toll gate, points at \"Buy credits\""
+    },
+    "upload.paused": {
+      "mood": "sleepy",
+      "hold": true,
+      "action": "Sleeps on the box; \"Resume\" wakes it"
+    },
+    "upload.preparing": {
+      "mood": "focused",
+      "hold": true,
+      "action": "Sorts cards on a desk"
+    },
+    "upload.retrying": {
+      "mood": "uploading",
+      "hold": true,
+      "action": "Re-stacks the dropped photos"
+    },
+    "upload.uploading": {
+      "mood": "uploading",
+      "hold": true,
+      "action": "Carries a box toward a cloud; speed follows throughput; stack shrinks, cloud grows"
+    },
+    "wall.published": {
+      "mood": "proud",
+      "action": "Gallery opening, ribbon cut"
+    },
+    "website.aiWriting": {
+      "mood": "thinking",
+      "hold": true,
+      "action": "Typewriter"
+    },
+    "website.live": {
+      "mood": "proud",
+      "first": "first-website",
+      "action": "Flips sign to \"Open\", lights on"
+    },
+    "website.offline": {
+      "mood": "sleepy",
+      "action": "\"Coming soon\" sign, lights off"
+    },
+    "app.launch": {
+      "mood": "idle",
+      "action": "Fades in, stretches once, then breathes"
+    },
+    "auth.termsMissing": {
+      "mood": "careful",
+      "action": "Points at the terms checkbox"
+    },
+    "auth.termsTicked": {
+      "mood": "ok",
+      "action": "Quick nod"
+    },
+    "auth.providerOpening": {
+      "mood": "thinking",
+      "hold": true,
+      "action": "Looks toward the sheet's side of the screen"
+    },
+    "auth.cancelled": {
+      "mood": "idle",
+      "action": "Shrugs, returns to waiting"
+    },
+    "auth.phoneInvalid": {
+      "mood": "careful",
+      "action": "Points at the field"
+    },
+    "auth.sendingCode": {
+      "mood": "carrying",
+      "hold": true,
+      "action": "Throws a paper plane off-screen"
+    },
+    "auth.resendCountdown": {
+      "mood": "patient",
+      "hold": true,
+      "action": "Small watch in hand ticks with the timer"
+    },
+    "auth.resendAvailable": {
+      "mood": "excited",
+      "action": "Ears up, points at \"Resend code\""
+    },
+    "auth.tooManyAttempts": {
+      "mood": "sad",
+      "hold": true,
+      "action": "Sits down; hint to wait"
+    },
+    "auth.newUser": {
+      "mood": "curious",
+      "action": "Leads to \"Name your studio\""
+    },
+    "auth.slugAvailable": {
+      "mood": "ok",
+      "action": "Thumbs-up beside the link"
+    },
+    "auth.slugTaken": {
+      "mood": "oops",
+      "action": "Sign gets a small cross"
+    },
+    "auth.launchingStudio": {
+      "mood": "carrying",
+      "hold": true,
+      "action": "Hangs the sign above a door"
+    },
+    "auth.restartConfirm": {
+      "mood": "careful",
+      "hold": true,
+      "action": "Hands up, worried brow"
+    },
+    "account.nudgeDismissed": {
+      "mood": "ok",
+      "action": "Pockets the key, no sulking"
+    },
+    "account.contactSheet": {
+      "mood": "waiting",
+      "hold": true,
+      "action": "Holds a name badge"
+    },
+    "account.emailSent": {
+      "mood": "carrying",
+      "action": "Posts an envelope"
+    },
+    "account.emailTaken": {
+      "mood": "oops",
+      "action": "Envelope bounces back"
+    },
+    "account.recentLogin": {
+      "mood": "locked",
+      "action": "Taps the door"
+    },
+    "account.switch": {
+      "mood": "sleepy",
+      "action": "Packs a bag, then greets the new account"
+    },
+    "events.noneCompleted": {
+      "mood": "sleepy",
+      "hold": true,
+      "action": "Sits beside an empty shelf"
+    },
+    "events.found": {
+      "mood": "ok",
+      "action": "Small nod"
+    },
+    "events.refresh": {
+      "mood": "focused",
+      "action": "Tugs a rope at the top edge"
+    },
+    "badge.new": {
+      "mood": "excited",
+      "hold": true,
+      "action": "Event row badge, 16 dp: small spark"
+    },
+    "badge.upcoming": {
+      "mood": "patient",
+      "hold": true,
+      "action": "Event row badge, 16 dp: calendar page"
+    },
+    "badge.shooting": {
+      "mood": "focused",
+      "hold": true,
+      "action": "Event row badge, 16 dp: camera raised"
+    },
+    "badge.awaitingPhotos": {
+      "mood": "patient",
+      "hold": true,
+      "action": "Event row badge, 16 dp: empty tray"
+    },
+    "badge.cullPending": {
+      "mood": "curious",
+      "hold": true,
+      "action": "Event row badge, 16 dp: loupe lowered"
+    },
+    "badge.uploading": {
+      "mood": "carrying",
+      "hold": true,
+      "action": "Event row badge, 16 dp: box with an up arrow"
+    },
+    "badge.readyToShare": {
+      "mood": "proud",
+      "hold": true,
+      "action": "Event row badge, 16 dp: link chain"
+    },
+    "badge.invited": {
+      "mood": "carrying",
+      "hold": true,
+      "action": "Event row badge, 16 dp: envelope"
+    },
+    "badge.selecting": {
+      "mood": "thinking",
+      "hold": true,
+      "action": "Event row badge, 16 dp: heart outline"
+    },
+    "badge.reselecting": {
+      "mood": "thinking",
+      "hold": true,
+      "action": "Event row badge, 16 dp: heart with a circular arrow"
+    },
+    "badge.exportReady": {
+      "mood": "celebrating",
+      "hold": true,
+      "action": "Event row badge, 16 dp: ribbon box"
+    },
+    "event.nameTyping": {
+      "mood": "waiting",
+      "hold": true,
+      "action": "Writes on the clipboard as you type"
+    },
+    "event.typeChosen": {
+      "mood": "happy",
+      "action": "Swaps a tiny costume prop (veil, cap, lanyard)"
+    },
+    "event.corporateLocked": {
+      "mood": "locked",
+      "hold": true,
+      "action": "Points to \"Contact support\""
+    },
+    "event.dateSet": {
+      "mood": "ok",
+      "action": "Pins the calendar page"
+    },
+    "event.dayAdded": {
+      "mood": "excited",
+      "action": "Lays out a second page"
+    },
+    "event.dayRemoved": {
+      "mood": "idle",
+      "action": "Folds the page away"
+    },
+    "event.coverAdded": {
+      "mood": "proud",
+      "action": "Frames the photo"
+    },
+    "event.coverFailed": {
+      "mood": "oops",
+      "action": "Frame cracks"
+    },
+    "event.crewAssigned": {
+      "mood": "happy",
+      "action": "High-fives tiny figures"
+    },
+    "event.retentionSet": {
+      "mood": "careful",
+      "action": "Holds an hourglass; serious face, privacy matters"
+    },
+    "event.needsDate": {
+      "mood": "careful",
+      "action": "Points at the date row"
+    },
+    "event.draftSaved": {
+      "mood": "ok",
+      "action": "Slides the clipboard into a drawer"
+    },
+    "event.draftFailed": {
+      "mood": "oops",
+      "action": "Drawer jams"
+    },
+    "event.publishConfirm": {
+      "mood": "careful",
+      "hold": true,
+      "action": "Explains, then waits for the confirm"
+    },
+    "event.edited": {
+      "mood": "ok",
+      "action": "Quick tick"
+    },
+    "folders.empty": {
+      "mood": "curious",
+      "hold": true,
+      "action": "Holds an empty folder open"
+    },
+    "folder.renamed": {
+      "mood": "ok",
+      "action": "Relabels the tab"
+    },
+    "folder.typeChosen": {
+      "mood": "idle",
+      "action": "Small badge: sparkle, frame, plain"
+    },
+    "folder.pinned": {
+      "mood": "ok",
+      "action": "Pushes a pin in"
+    },
+    "folder.addToPublished": {
+      "mood": "careful",
+      "hold": true,
+      "action": "One finger raised"
+    },
+    "capture.entry": {
+      "mood": "curious",
+      "hold": true,
+      "action": "Holds a camera, looks at you"
+    },
+    "capture.notifyAsk": {
+      "mood": "waiting",
+      "hold": true,
+      "action": "Rings a little bell"
+    },
+    "capture.hotspot": {
+      "mood": "connecting",
+      "hold": true,
+      "action": "Raises an antenna"
+    },
+    "capture.hotspotChecking": {
+      "mood": "thinking",
+      "hold": true,
+      "action": "Antenna wiggles while it checks"
+    },
+    "capture.brandPicker": {
+      "mood": "curious",
+      "hold": true,
+      "action": "Holds up camera silhouettes as you hover each brand"
+    },
+    "capture.exactValues": {
+      "mood": "careful",
+      "hold": true,
+      "action": "Magnifier on the value: dots matter"
+    },
+    "capture.passwordStep": {
+      "mood": "shy",
+      "hold": true,
+      "action": "Half-covers eyes"
+    },
+    "capture.connectNow": {
+      "mood": "connecting",
+      "hold": true,
+      "action": "Holds a plug toward the camera"
+    },
+    "capture.hintWifi": {
+      "mood": "thinking",
+      "hold": true,
+      "action": "Points at the Wi-Fi symbol"
+    },
+    "capture.hintValues": {
+      "mood": "thinking",
+      "hold": true,
+      "action": "Points at the specific value, one hint at a time"
+    },
+    "capture.signedIn": {
+      "mood": "ok",
+      "action": "Thumbs-up"
+    },
+    "capture.verified": {
+      "mood": "proud",
+      "action": "Spotlight on the live badge"
+    },
+    "capture.wrongUser": {
+      "mood": "oops",
+      "hold": true,
+      "action": "Shows two name tags that don't match"
+    },
+    "capture.wrongPassword": {
+      "mood": "oops",
+      "hold": true,
+      "action": "Key does not turn"
+    },
+    "capture.lockedOut": {
+      "mood": "locked",
+      "hold": true,
+      "action": "Sits at a closed door"
+    },
+    "capture.secureMode": {
+      "mood": "careful",
+      "hold": true,
+      "action": "Unlocks a padlock icon, \"turn this off\""
+    },
+    "capture.passiveOff": {
+      "mood": "thinking",
+      "hold": true,
+      "action": "Pipe with a blockage"
+    },
+    "capture.firewall": {
+      "mood": "careful",
+      "hold": true,
+      "action": "Small wall in front of it"
+    },
+    "capture.transferFailed": {
+      "mood": "oops",
+      "action": "Photo torn in half"
+    },
+    "capture.reconnectKnown": {
+      "mood": "happy",
+      "action": "Recognises the camera, waves"
+    },
+    "capture.hostChanged": {
+      "mood": "thinking",
+      "action": "Swaps one address card"
+    },
+    "capture.burst": {
+      "mood": "focused",
+      "hold": true,
+      "action": "Juggling"
+    },
+    "capture.reconnected": {
+      "mood": "connected",
+      "action": "Plugs back in, relieved"
+    },
+    "capture.stopped": {
+      "mood": "goodbye",
+      "action": "Waves the camera off"
+    },
+    "capture.leaveWarning": {
+      "mood": "careful",
+      "hold": true,
+      "action": "Points back at the live badge"
+    },
+    "capture.needsCredits": {
+      "mood": "sad",
+      "hold": true,
+      "action": "Empty wallet"
+    },
+    "import.menu": {
+      "mood": "curious",
+      "action": "Peeks at the system picker"
+    },
+    "import.pickerOpen": {
+      "mood": "patient",
+      "hold": true,
+      "action": "Waits outside the dialog edge"
+    },
+    "import.pickerCancelled": {
+      "mood": "idle",
+      "action": "Shrugs"
+    },
+    "import.tileLeftOut": {
+      "mood": "ok",
+      "action": "Sets it aside"
+    },
+    "import.duplicateName": {
+      "mood": "thinking",
+      "action": "Holds two identical cards"
+    },
+    "import.cullChosen": {
+      "mood": "excited",
+      "action": "Grabs a loupe"
+    },
+    "import.withoutCull": {
+      "mood": "carrying",
+      "action": "Carries the whole stack straight through"
+    },
+    "import.queued": {
+      "mood": "patient",
+      "hold": true,
+      "action": "Stands in a queue"
+    },
+    "import.recheck": {
+      "mood": "thinking",
+      "action": "Peeks into the slot"
+    },
+    "import.driveLost": {
+      "mood": "oops",
+      "action": "Cable pulled out"
+    },
+    "import.fileMissing": {
+      "mood": "searching",
+      "action": "Looks under things"
+    },
+    "import.truncated": {
+      "mood": "oops",
+      "action": "Torn photo"
+    },
+    "import.denied": {
+      "mood": "locked",
+      "action": "Locked drawer"
+    },
+    "import.cancelConfirm": {
+      "mood": "careful",
+      "hold": true,
+      "action": "Stops mid-carry"
+    },
+    "upload.morePreparing": {
+      "mood": "focused",
+      "hold": true,
+      "action": "Stack shrinks as it works"
+    },
+    "upload.facesReady": {
+      "mood": "ok",
+      "action": "Ticks a face icon"
+    },
+    "upload.watermarking": {
+      "mood": "focused",
+      "hold": true,
+      "action": "Stamps each photo"
+    },
+    "upload.noWatermark": {
+      "mood": "careful",
+      "action": "Holds a blank stamp"
+    },
+    "upload.slow": {
+      "mood": "patient",
+      "hold": true,
+      "action": "Walks uphill"
+    },
+    "transfers.empty": {
+      "mood": "idle",
+      "hold": true,
+      "action": "Leans on an empty trolley"
+    },
+    "upload.pausedByUser": {
+      "mood": "sleepy",
+      "action": "Puts the box down, sits on it"
+    },
+    "upload.resumed": {
+      "mood": "excited",
+      "action": "Jumps up, picks the box back up"
+    },
+    "upload.backgroundAsk": {
+      "mood": "waiting",
+      "hold": true,
+      "action": "Holds a lantern"
+    },
+    "upload.background": {
+      "mood": "goodbye",
+      "action": "Walks off with the box, waving"
+    },
+    "upload.keepOpen": {
+      "mood": "careful",
+      "hold": true,
+      "action": "Holds the door open"
+    },
+    "upload.manyFailed": {
+      "mood": "oops",
+      "action": "Small pile of dropped photos"
+    },
+    "upload.retryAll": {
+      "mood": "excited",
+      "action": "Rolls up its sleeves"
+    },
+    "failed.empty": {
+      "mood": "happy",
+      "hold": true,
+      "action": "Empty, swept floor"
+    },
+    "processing.failed": {
+      "mood": "oops",
+      "action": "Gear pops out"
+    },
+    "faces.failed": {
+      "mood": "oops",
+      "action": "Cracked magnifier"
+    },
+    "upload.backOnline": {
+      "mood": "connected",
+      "action": "Road opens, walks on"
+    },
+    "credits.expired": {
+      "mood": "sad",
+      "hold": true,
+      "action": "Torn ticket"
+    },
+    "credits.unverified": {
+      "mood": "patient",
+      "hold": true,
+      "action": "Looking at a blank receipt; \"Refresh balance\""
+    },
+    "billing.subscribed": {
+      "mood": "celebrating",
+      "action": "Membership card"
+    },
+    "billing.restoring": {
+      "mood": "searching",
+      "hold": true,
+      "action": "Looks through a drawer"
+    },
+    "billing.nothingToRestore": {
+      "mood": "idle",
+      "action": "Empty drawer, shrug"
+    },
+    "storage.empty": {
+      "mood": "happy",
+      "hold": true,
+      "action": "Neat empty shelf"
+    },
+    "storage.cleaned": {
+      "mood": "ok",
+      "action": "Sweeps away dust"
+    },
+    "storage.cleanFailed": {
+      "mood": "oops",
+      "action": "Broom snaps"
+    },
+    "storage.unavailable": {
+      "mood": "thinking",
+      "hold": true,
+      "action": "Question mark over a box"
+    },
+    "media.locateOriginals": {
+      "mood": "searching",
+      "hold": true,
+      "action": "Lantern in a dark room"
+    },
+    "cull.opened": {
+      "mood": "excited",
+      "action": "Pulls a stool up to the table"
+    },
+    "cull.intro": {
+      "mood": "careful",
+      "action": "Lock on a box: nothing leaves"
+    },
+    "cull.assisted": {
+      "mood": "waiting",
+      "action": "Holds a red flag (it only flags the worst)"
+    },
+    "cull.aiCull": {
+      "mood": "thinking",
+      "action": "Holds a sorting tray"
+    },
+    "cull.target": {
+      "mood": "focused",
+      "action": "Fills a measuring cup to the level"
+    },
+    "cull.strictness": {
+      "mood": "focused",
+      "action": "Squints harder at Extreme, relaxed at More"
+    },
+    "cull.styles": {
+      "mood": "ok",
+      "action": "Paints a swatch"
+    },
+    "cull.modelsPreparing": {
+      "mood": "thinking",
+      "hold": true,
+      "action": "Unpacks a toolbox"
+    },
+    "cull.modelsOffline": {
+      "mood": "disconnected",
+      "hold": true,
+      "action": "Toolbox locked outside"
+    },
+    "cull.judging": {
+      "mood": "waiting",
+      "hold": true,
+      "action": "Sits beside the progress bar watching it fill, glancing back at you now and then"
+    },
+    "cull.keepOpen": {
+      "mood": "careful",
+      "hold": true,
+      "action": "Holds the door open"
+    },
+    "cull.hot": {
+      "mood": "hot",
+      "hold": true,
+      "action": "Fans the loupe"
+    },
+    "cull.highlights": {
+      "mood": "celebrating",
+      "action": "Holds up a gold star"
+    },
+    "cull.rowSelected": {
+      "mood": "happy",
+      "action": "Neat pile with a tick"
+    },
+    "cull.rowMaybe": {
+      "mood": "thinking",
+      "action": "Rocks hand: \"worth a look\""
+    },
+    "cull.rowBlurred": {
+      "mood": "oops",
+      "action": "Squints at a fuzzy card"
+    },
+    "cull.rowClosedEyes": {
+      "mood": "idle",
+      "action": "Closes its own eyes, playful"
+    },
+    "cull.rowDuplicate": {
+      "mood": "thinking",
+      "action": "Holds two identical cards"
+    },
+    "cull.rowFlagged": {
+      "mood": "careful",
+      "action": "Red flag raised"
+    },
+    "cull.rowLowerRanked": {
+      "mood": "idle",
+      "action": "Places card at the back"
+    },
+    "cull.nothingChecked": {
+      "mood": "curious",
+      "hold": true,
+      "action": "Peers at an empty grid"
+    },
+    "cull.restart": {
+      "mood": "thinking",
+      "action": "Gathers the cards back up"
+    },
+    "cull.again": {
+      "mood": "waiting",
+      "hold": true,
+      "action": "Waits again while the folder is re-sorted (nothing is re-scanned)"
+    },
+    "cull.nothingKept": {
+      "mood": "curious",
+      "hold": true,
+      "action": "Points at the P key"
+    },
+    "cull.sendDialog": {
+      "mood": "focused",
+      "hold": true,
+      "action": "Two baskets: Sending and Staying"
+    },
+    "cull.sendMaybes": {
+      "mood": "ok",
+      "action": "Moves the Maybe pile to Sending"
+    },
+    "cull.draftWait": {
+      "mood": "patient",
+      "action": "Box waits at a closed gate"
+    },
+    "cull.releaseFailed": {
+      "mood": "oops",
+      "action": "Lid won't close"
+    },
+    "cull.export": {
+      "mood": "carrying",
+      "action": "Copies into a folder"
+    },
+    "cull.exportBusy": {
+      "mood": "patient",
+      "action": "Stands in line"
+    },
+    "cull.tabEmpty": {
+      "mood": "curious",
+      "hold": true,
+      "action": "Points to the Cloud tab"
+    },
+    "cloud.tabEmpty": {
+      "mood": "curious",
+      "hold": true,
+      "action": "Points to the Cull tab"
+    },
+    "cull.bulkRated": {
+      "mood": "ok",
+      "action": "One-shot thumbs-up, 24 dp, never blocks keys"
+    },
+    "cull.compareDone": {
+      "mood": "happy",
+      "action": "Small, one-shot"
+    },
+    "cull.keyHelp": {
+      "mood": "waiting",
+      "hold": true,
+      "action": "Points at keys as you hover"
+    },
+    "selection.linkFirst": {
+      "mood": "careful",
+      "hold": true,
+      "action": "Points at the link step"
+    },
+    "selection.maxSet": {
+      "mood": "focused",
+      "action": "Counts on fingers to the number"
+    },
+    "selection.maxChanged": {
+      "mood": "ok",
+      "action": "Adjusts the basket size"
+    },
+    "selection.picks": {
+      "mood": "thinking",
+      "action": "One bounce per pick, throttled"
+    },
+    "selection.several": {
+      "mood": "patient",
+      "hold": true,
+      "action": "Ticks names on a list"
+    },
+    "selection.unfinishedWarning": {
+      "mood": "careful",
+      "hold": true,
+      "action": "Shows the unticked names"
+    },
+    "selection.hostDone": {
+      "mood": "happy",
+      "action": "Ties a bow on that host's basket"
+    },
+    "selection.reviewAsk": {
+      "mood": "waiting",
+      "hold": true,
+      "action": "Holds a small star card"
+    },
+    "selection.reviewReceived": {
+      "mood": "excited",
+      "action": "Reads the card, beams"
+    },
+    "selection.moderate": {
+      "mood": "focused",
+      "hold": true,
+      "action": "Reading glasses on"
+    },
+    "selection.reselect": {
+      "mood": "thinking",
+      "action": "Empties the basket back onto the table, calmly"
+    },
+    "selection.resetConfirm": {
+      "mood": "careful",
+      "hold": true,
+      "action": "Hands over the basket"
+    },
+    "export.structure": {
+      "mood": "ok",
+      "action": "Sorts into one box or many"
+    },
+    "export.alreadyDone": {
+      "mood": "ok",
+      "action": "Points at the full folder"
+    },
+    "export.missingOriginals": {
+      "mood": "searching",
+      "hold": true,
+      "action": "Lantern, list of missing files"
+    },
+    "export.partial": {
+      "mood": "oops",
+      "action": "Few cards on the floor; \"Retry failed\""
+    },
+    "job.delivered": {
+      "mood": "proud",
+      "action": "Hands over the box, bows"
+    },
+    "share.link": {
+      "mood": "carrying",
+      "action": "Throws a paper plane"
+    },
+    "share.qrSaved": {
+      "mood": "ok",
+      "action": "Tucks it in a pocket"
+    },
+    "share.qrSaveFailed": {
+      "mood": "oops",
+      "action": "Paper tears"
+    },
+    "qr.notMapped": {
+      "mood": "curious",
+      "hold": true,
+      "action": "Holds an unlinked QR card"
+    },
+    "qr.mapping": {
+      "mood": "connecting",
+      "hold": true,
+      "action": "Ties a string from card to event"
+    },
+    "qr.mapped": {
+      "mood": "connected",
+      "action": "Knot tied"
+    },
+    "qr.noneAvailable": {
+      "mood": "idle",
+      "hold": true,
+      "action": "Empty card box"
+    },
+    "qr.mapFailed": {
+      "mood": "oops",
+      "action": "String snaps"
+    },
+    "qrdirect.generating": {
+      "mood": "thinking",
+      "hold": true,
+      "action": "Prints a ticket"
+    },
+    "qrdirect.ready": {
+      "mood": "proud",
+      "action": "Holds a ticket, timer on it"
+    },
+    "qrdirect.countdown": {
+      "mood": "patient",
+      "hold": true,
+      "action": "Watch on wrist"
+    },
+    "qrdirect.expired": {
+      "mood": "sleepy",
+      "hold": true,
+      "action": "Ticket turns grey"
+    },
+    "public.off": {
+      "mood": "idle",
+      "hold": true,
+      "action": "Door closed"
+    },
+    "public.downloads": {
+      "mood": "ok",
+      "action": "Hands out / holds back a photo"
+    },
+    "public.expired": {
+      "mood": "sleepy",
+      "hold": true,
+      "action": "Door closes, \"Closed\" sign"
+    },
+    "public.refresh": {
+      "mood": "carrying",
+      "action": "Restocks the window"
+    },
+    "role.gate": {
+      "mood": "locked",
+      "hold": true,
+      "action": "Behind a rope"
+    },
+    "public.offline": {
+      "mood": "disconnected",
+      "hold": true,
+      "action": "Holds a cable"
+    },
+    "faces.retentionInfo": {
+      "mood": "careful",
+      "hold": true,
+      "action": "Holds an hourglass (14–90 days)"
+    },
+    "faces.noMatches": {
+      "mood": "curious",
+      "hold": true,
+      "action": "Empty string between two cards"
+    },
+    "faces.allMatched": {
+      "mood": "happy",
+      "action": "All strings tied"
+    },
+    "faces.exhausted": {
+      "mood": "thinking",
+      "hold": true,
+      "action": "Points at \"Match\""
+    },
+    "wall.empty": {
+      "mood": "curious",
+      "hold": true,
+      "action": "Blank wall with a nail"
+    },
+    "wall.styling": {
+      "mood": "focused",
+      "hold": true,
+      "action": "Paints the wall"
+    },
+    "wall.cover": {
+      "mood": "proud",
+      "action": "Hangs a frame"
+    },
+    "wall.coverFailed": {
+      "mood": "oops",
+      "action": "Frame slips"
+    },
+    "wall.publishConfirm": {
+      "mood": "waiting",
+      "hold": true,
+      "action": "Hand on the curtain cord"
+    },
+    "wall.failed": {
+      "mood": "oops",
+      "action": "Curtain stuck"
+    },
+    "wall.unpublished": {
+      "mood": "sleepy",
+      "action": "Covers the wall with a sheet"
+    },
+    "wall.featured": {
+      "mood": "ok",
+      "action": "Pins / unpins a photo"
+    },
+    "hosts.publishFirst": {
+      "mood": "careful",
+      "hold": true,
+      "action": "Points at Publish"
+    },
+    "hosts.invitePhone": {
+      "mood": "waiting",
+      "hold": true,
+      "action": "Holds a phone, waits for digits"
+    },
+    "hosts.inviteEmail": {
+      "mood": "waiting",
+      "hold": true,
+      "action": "Holds an envelope"
+    },
+    "hosts.contacts": {
+      "mood": "searching",
+      "hold": true,
+      "action": "Flips through a contact book"
+    },
+    "hosts.inviteLink": {
+      "mood": "thinking",
+      "hold": true,
+      "action": "Holds a key on a ring"
+    },
+    "hosts.seats": {
+      "mood": "focused",
+      "action": "Sets out chairs, one per seat"
+    },
+    "hosts.ttl": {
+      "mood": "patient",
+      "action": "Small hourglass, size by duration"
+    },
+    "hosts.linkCreated": {
+      "mood": "proud",
+      "action": "Presents the key"
+    },
+    "hosts.failed": {
+      "mood": "oops",
+      "action": "Key drops"
+    },
+    "hosts.pending": {
+      "mood": "patient",
+      "hold": true,
+      "action": "Waits by the door"
+    },
+    "hosts.resent": {
+      "mood": "carrying",
+      "action": "Second envelope"
+    },
+    "hosts.linkFull": {
+      "mood": "ok",
+      "action": "Every chair filled"
+    },
+    "hosts.linkExpired": {
+      "mood": "sleepy",
+      "hold": true,
+      "action": "Key rusts"
+    },
+    "hosts.linkExtended": {
+      "mood": "ok",
+      "action": "Polishes the key"
+    },
+    "hosts.revokeConfirm": {
+      "mood": "careful",
+      "hold": true,
+      "action": "Hand on the lock"
+    },
+    "hosts.revoked": {
+      "mood": "idle",
+      "action": "Hangs the key up"
+    },
+    "hosts.removed": {
+      "mood": "idle",
+      "action": "Closes the door quietly"
+    },
+    "hosts.accessOff": {
+      "mood": "locked",
+      "action": "Turns the key off"
+    },
+    "hosts.accessOn": {
+      "mood": "ok",
+      "action": "Turns the key on"
+    },
+    "hosts.duplicate": {
+      "mood": "thinking",
+      "action": "Points at the existing badge"
+    },
+    "crew.empty": {
+      "mood": "curious",
+      "hold": true,
+      "action": "Empty chairs"
+    },
+    "crew.assigned": {
+      "mood": "happy",
+      "action": "Hands out camera straps"
+    },
+    "crew.info": {
+      "mood": "idle",
+      "hold": true,
+      "action": "Points to Edit"
+    },
+    "team.addForm": {
+      "mood": "waiting",
+      "hold": true,
+      "action": "Holds a lanyard"
+    },
+    "team.rolePicker": {
+      "mood": "thinking",
+      "hold": true,
+      "action": "Holds role cards (owner, manager, shooter, editor)"
+    },
+    "team.duplicate": {
+      "mood": "oops",
+      "action": "Two identical lanyards"
+    },
+    "team.addFailed": {
+      "mood": "oops",
+      "action": "Lanyard tangles"
+    },
+    "team.removeConfirm": {
+      "mood": "careful",
+      "hold": true,
+      "action": "Respectful"
+    },
+    "team.removeOffline": {
+      "mood": "disconnected",
+      "action": "Cable"
+    },
+    "team.refresh": {
+      "mood": "focused",
+      "action": "Counts heads"
+    },
+    "orbit.chipEmpty": {
+      "mood": "sleepy",
+      "hold": true,
+      "action": "Quiet inbox"
+    },
+    "orbit.bookingSeen": {
+      "mood": "ok",
+      "action": "Nods"
+    },
+    "orbit.pushOpened": {
+      "mood": "excited",
+      "action": "Same pose, small"
+    },
+    "orbit.datesConfirmed": {
+      "mood": "happy",
+      "action": "Circles a date on the calendar"
+    },
+    "orbit.declined": {
+      "mood": "idle",
+      "action": "Polite bow"
+    },
+    "orbit.createEvent": {
+      "mood": "carrying",
+      "action": "Carries the functions into a new event"
+    },
+    "orbit.eventLinked": {
+      "mood": "connected",
+      "action": "Chain links"
+    },
+    "orbit.newJob": {
+      "mood": "waiting",
+      "hold": true,
+      "action": "Fresh clipboard"
+    },
+    "orbit.quoteAccepted": {
+      "mood": "celebrating",
+      "action": "Handshake"
+    },
+    "orbit.invoiceDraft": {
+      "mood": "focused",
+      "hold": true,
+      "action": "Writes the invoice"
+    },
+    "orbit.invoiceSent": {
+      "mood": "carrying",
+      "action": "Envelope with a stamp"
+    },
+    "orbit.balanceDue": {
+      "mood": "careful",
+      "hold": true,
+      "action": "Holds up the outstanding amount"
+    },
+    "orbit.closeable": {
+      "mood": "proud",
+      "action": "Closes the folder with a stamp"
+    },
+    "orbit.paymentTooMuch": {
+      "mood": "careful",
+      "action": "Coin bounces out of the jar"
+    },
+    "orbit.paymentFuture": {
+      "mood": "careful",
+      "action": "Points at the calendar"
+    },
+    "orbit.discardConfirm": {
+      "mood": "careful",
+      "hold": true,
+      "action": "Holds the draft over a bin"
+    },
+    "orbit.removePaymentConfirm": {
+      "mood": "careful",
+      "hold": true,
+      "action": "Takes the coin back out"
+    },
+    "orbit.followUp": {
+      "mood": "excited",
+      "action": "Taps a clock"
+    },
+    "orbit.historyEmpty": {
+      "mood": "curious",
+      "hold": true,
+      "action": "Blank notebook"
+    },
+    "orbit.noteAdded": {
+      "mood": "ok",
+      "action": "Writes a line"
+    },
+    "orbit.deleteConfirm": {
+      "mood": "careful",
+      "hold": true,
+      "action": "Carries it to a bin, gently"
+    },
+    "orbit.moneyWarning": {
+      "mood": "careful",
+      "hold": true,
+      "action": "Points at the invoices"
+    },
+    "orbit.trashEmpty": {
+      "mood": "happy",
+      "hold": true,
+      "action": "Clean empty bin"
+    },
+    "orbit.syncFailed": {
+      "mood": "oops",
+      "action": "Papers scattered"
+    },
+    "bookingForm.dirty": {
+      "mood": "patient",
+      "hold": true,
+      "action": "Pen in hand, waiting for Save"
+    },
+    "bookingForm.saved": {
+      "mood": "ok",
+      "action": "Stamps the form"
+    },
+    "bookingForm.invalid": {
+      "mood": "careful",
+      "action": "Points at the empty field"
+    },
+    "bookingForm.open": {
+      "mood": "proud",
+      "action": "Flips the sign to \"Open\""
+    },
+    "bookingForm.closed": {
+      "mood": "sleepy",
+      "action": "Flips the sign to \"Closed\""
+    },
+    "orbit.received": {
+      "mood": "happy",
+      "action": "Coin stack grows with the sum"
+    },
+    "attendees.publishFirst": {
+      "mood": "careful",
+      "hold": true,
+      "action": "Points at Publish"
+    },
+    "attendees.importPicker": {
+      "mood": "waiting",
+      "hold": true,
+      "action": "Holds a clipboard out"
+    },
+    "attendees.wrongFile": {
+      "mood": "oops",
+      "action": "Hands the file back"
+    },
+    "attendees.parseError": {
+      "mood": "oops",
+      "action": "Blank sheet, shrug"
+    },
+    "attendees.mapColumns": {
+      "mood": "focused",
+      "hold": true,
+      "action": "Draws arrows between columns"
+    },
+    "attendees.dedupe": {
+      "mood": "thinking",
+      "hold": true,
+      "action": "Two identical cards"
+    },
+    "attendees.imported": {
+      "mood": "happy",
+      "action": "Fans out the name cards"
+    },
+    "attendees.addManual": {
+      "mood": "waiting",
+      "hold": true,
+      "action": "Pen ready"
+    },
+    "attendees.removed": {
+      "mood": "idle",
+      "action": "Removes a card quietly"
+    },
+    "attendees.noResults": {
+      "mood": "searching",
+      "hold": true,
+      "action": "Flips cards"
+    },
+    "attendees.error": {
+      "mood": "oops",
+      "action": "Cards scatter"
+    },
+    "attendees.facesReading": {
+      "mood": "scanning",
+      "hold": true,
+      "action": "Scan line passes over each headshot, brackets lock on"
+    },
+    "attendees.facesOk": {
+      "mood": "ok",
+      "action": "Thumbs-up"
+    },
+    "attendees.faceProblem": {
+      "mood": "thinking",
+      "hold": true,
+      "action": "Points at the crowded headshot"
+    },
+    "attendees.noFaces": {
+      "mood": "curious",
+      "hold": true,
+      "action": "Points to the panel"
+    },
+    "attendees.matching": {
+      "mood": "searching",
+      "hold": true,
+      "action": "Strings from faces to photos"
+    },
+    "attendees.matched": {
+      "mood": "celebrating",
+      "action": "Hands each card its photos"
+    },
+    "attendees.roleGate": {
+      "mood": "locked",
+      "hold": true,
+      "action": "Behind a rope"
+    },
+    "campaign.editing": {
+      "mood": "focused",
+      "hold": true,
+      "action": "Writes the letter"
+    },
+    "campaign.saved": {
+      "mood": "ok",
+      "action": "Seals it"
+    },
+    "campaign.test": {
+      "mood": "carrying",
+      "action": "Sends a single envelope to itself"
+    },
+    "campaign.inline": {
+      "mood": "focused",
+      "hold": true,
+      "action": "Hand-delivers each envelope; \"keep the app open\""
+    },
+    "campaign.someFailed": {
+      "mood": "oops",
+      "action": "A few envelopes bounce back"
+    },
+    "campaign.logEmpty": {
+      "mood": "sleepy",
+      "hold": true,
+      "action": "Bag full, waiting"
+    },
+    "studio.details": {
+      "mood": "waiting",
+      "hold": true,
+      "action": "Holds the shop sign"
+    },
+    "studio.country": {
+      "mood": "ok",
+      "action": "Plants a small flag"
+    },
+    "studio.logo": {
+      "mood": "proud",
+      "action": "Hangs the logo"
+    },
+    "studio.oneLogo": {
+      "mood": "ok",
+      "action": "Nods"
+    },
+    "studio.assetFailed": {
+      "mood": "oops",
+      "action": "Logo falls"
+    },
+    "watermark.enabled": {
+      "mood": "focused",
+      "action": "Inks a stamp"
+    },
+    "watermark.editing": {
+      "mood": "focused",
+      "hold": true,
+      "action": "Stands beside the preview, nudges the mark as you drag"
+    },
+    "watermark.saved": {
+      "mood": "ok",
+      "action": "Stamps a test photo"
+    },
+    "website.checklist": {
+      "mood": "curious",
+      "hold": true,
+      "action": "Holds a checklist, ticks as items finish"
+    },
+    "website.wizard": {
+      "mood": "waiting",
+      "hold": true,
+      "action": "Interviews you, notepad"
+    },
+    "website.aiWritten": {
+      "mood": "proud",
+      "action": "Presents the page; \"read and change anything\""
+    },
+    "website.aiUndone": {
+      "mood": "ok",
+      "action": "Rubs it out"
+    },
+    "website.aiFailed": {
+      "mood": "oops",
+      "action": "Typewriter jams"
+    },
+    "website.aiLimit": {
+      "mood": "sleepy",
+      "hold": true,
+      "action": "\"Back tomorrow\" sign"
+    },
+    "website.aiUnavailable": {
+      "mood": "idle",
+      "hold": true,
+      "action": "Typewriter covered"
+    },
+    "website.designing": {
+      "mood": "thinking",
+      "hold": true,
+      "action": "Sketchbook"
+    },
+    "website.redesign": {
+      "mood": "focused",
+      "action": "Tears page, sketches again"
+    },
+    "website.useDesign": {
+      "mood": "proud",
+      "action": "Unrolls the blueprint"
+    },
+    "website.dirty": {
+      "mood": "patient",
+      "hold": true,
+      "action": "Waits by Publish"
+    },
+    "website.discard": {
+      "mood": "careful",
+      "action": "Crumples a page"
+    },
+    "website.publishing": {
+      "mood": "carrying",
+      "hold": true,
+      "action": "Carries the page to the window"
+    },
+    "website.published": {
+      "mood": "ok",
+      "action": "Tick"
+    },
+    "website.liveFailed": {
+      "mood": "disconnected",
+      "action": "Light flickers"
+    },
+    "website.albumsEmpty": {
+      "mood": "curious",
+      "hold": true,
+      "action": "Empty album"
+    },
+    "website.albumUploading": {
+      "mood": "carrying",
+      "hold": true,
+      "action": "Slides photo into a sleeve"
+    },
+    "website.albumSaved": {
+      "mood": "ok",
+      "action": "Closes the album"
+    },
+    "website.faviconPending": {
+      "mood": "patient",
+      "hold": true,
+      "action": "Small hourglass"
+    },
+    "billing.freeTier": {
+      "mood": "idle",
+      "hold": true,
+      "action": "Relaxed"
+    },
+    "billing.paywall": {
+      "mood": "waiting",
+      "hold": true,
+      "action": "Holds a price card"
+    },
+    "billing.noPlans": {
+      "mood": "curious",
+      "hold": true,
+      "action": "Empty shelf"
+    },
+    "billing.otherDevice": {
+      "mood": "thinking",
+      "hold": true,
+      "action": "Points to Restore"
+    },
+    "update.later": {
+      "mood": "ok",
+      "action": "Puts the box aside"
+    },
+    "update.downloading": {
+      "mood": "carrying",
+      "hold": true,
+      "action": "Box being carried in"
+    },
+    "update.ready": {
+      "mood": "happy",
+      "action": "Taps the restart button"
+    },
+    "update.upToDate": {
+      "mood": "ok",
+      "action": "Thumbs-up"
+    },
+    "update.checkFailed": {
+      "mood": "oops",
+      "action": "Shrug"
+    },
+    "diagnostics.consent": {
+      "mood": "careful",
+      "hold": true,
+      "action": "Holds the log closed until you tick the box"
+    },
+    "diagnostics.sent": {
+      "mood": "happy",
+      "action": "Thank-you wave"
+    },
+    "state.offlineSurface": {
+      "mood": "disconnected",
+      "hold": true,
+      "action": "Full pose, points to network settings"
+    },
+    "state.timeout": {
+      "mood": "patient",
+      "action": "Watch rings"
+    },
+    "state.serverError": {
+      "mood": "oops",
+      "hold": true,
+      "action": "Fixing a server box with a spanner"
+    },
+    "state.clientError": {
+      "mood": "locked",
+      "hold": true,
+      "action": "At a rope barrier"
+    },
+    "permission.notifications": {
+      "mood": "waiting",
+      "hold": true,
+      "action": "Rings a bell softly"
+    },
+    "permission.photos": {
+      "mood": "waiting",
+      "hold": true,
+      "action": "Holds an empty album"
+    },
+    "permission.declined": {
+      "mood": "ok",
+      "action": "No sulking"
+    },
+    "state.empty": {
+      "mood": "curious",
+      "hold": true,
+      "action": "Peeks in"
+    },
+    "state.nothingSelected": {
+      "mood": "curious",
+      "hold": true,
+      "action": "Points left toward the list"
+    },
+    "state.copied": {
+      "mood": "ok",
+      "action": "Wink"
+    },
+    "state.undo": {
+      "mood": "thinking",
+      "action": "Rewind gesture"
+    },
+    "studio.none": {
+      "mood": "thinking",
+      "hold": true,
+      "action": "Empty shop sign"
+    },
+    "app.resumed": {
+      "mood": "idle",
+      "action": "Blinks awake"
+    },
+    "app.lateNight": {
+      "mood": "sleepy",
+      "action": "Yawns once per session"
+    }
+  },
+  "clips": {
+    "auth.studioLaunched": {
+      "pose": "the biggest celebration: jumping high with both arms up under a hanging shop sign, confetti and a camera-flash burst",
+      "keyframes": [
+        "crouched before the jump, looking up at the sign",
+        "mid-air, arms up, confetti and flash burst"
+      ],
+      "fps": 4
+    },
+    "event.published": {
+      "pose": "pulling a curtain cord, the curtain opening beside it, a spotlight on it, proud smile",
+      "keyframes": [
+        "curtain closed, hand on the cord",
+        "curtain open, spotlight on"
+      ],
+      "fps": 3
+    },
+    "capture.firstPhoto": {
+      "pose": "catching a photo print in mid-air with both hands, delighted",
+      "keyframes": [
+        "reaching up, photo falling toward it",
+        "photo caught, hugging it"
+      ],
+      "fps": 4
+    },
+    "upload.done": {
+      "pose": "dropping the last box into a big yellow cloud that shows a white tick",
+      "keyframes": [
+        "lifting the box up to the cloud",
+        "box in, the cloud shows a tick, cheering"
+      ],
+      "fps": 3
+    },
+    "cull.sent": {
+      "pose": "sealing a cardboard box with tape and handing it forward",
+      "keyframes": [
+        "taping the box shut",
+        "holding the sealed box out forward"
+      ],
+      "fps": 3
+    },
+    "cull.running": {
+      "pose": "sitting on a small stool beside a horizontal progress bar, eyes on the bar",
+      "keyframes": [
+        "watching the bar",
+        "a small nod toward the bar"
+      ],
+      "fps": 2
+    },
+    "selection.completed": {
+      "pose": "cheering beside a row of small baskets with hearts, confetti",
+      "keyframes": [
+        "arms half up beside the baskets",
+        "arms fully up, confetti"
+      ],
+      "fps": 4
+    },
+    "orbit.newBooking": {
+      "pose": "popping up from an inbox tray, ringing a small bell",
+      "keyframes": [
+        "bell tilted left",
+        "bell tilted right"
+      ],
+      "fps": 4
+    },
+    "orbit.paidInFull": {
+      "pose": "holding up a glass jar full of sparkling gold coins, celebrating",
+      "keyframes": [
+        "jar held at the chest",
+        "jar held up high, coins sparkling"
+      ],
+      "fps": 3
+    },
+    "website.live": {
+      "pose": "flipping a small hanging shop sign to \"OPEN\", lights coming on",
+      "keyframes": [
+        "hand on the sign showing \"CLOSED\"",
+        "sign flipped to \"OPEN\", proud smile"
+      ],
+      "fps": 3
+    }
+  }
+}
