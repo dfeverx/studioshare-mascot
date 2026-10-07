@@ -23,6 +23,7 @@ import kotlin.math.floor
 import kotlin.math.hypot
 import kotlin.math.min
 import kotlin.math.sin
+import kotlin.math.tanh
 
 /** The icon's colours. The face is always the black icon, whatever the theme around it. */
 object StudioFacePalette {
@@ -102,14 +103,36 @@ internal data class FaceParams(
 
 private fun l(a: Float, b: Float, f: Float) = a + (b - a) * f
 
-/** Blink, 0 open … 1 shut, every 3–6 s with a little jitter. Pure in [t] so a render is repeatable. */
+/**
+ * Which way to look at something [dx], [dy] points away (right and down positive): each axis −1..1,
+ * turning hard for a nearby offset and settling as it grows. The axes are independent, so a cursor
+ * far below and a little to the side still gets a real sideways look.
+ */
+fun gazeToward(dx: Float, dy: Float): Offset = Offset(tanh(dx / 260f), tanh(dy / 200f))
+
+private fun hash(n: Float, seed: Float) = (sin(n * seed) * 43758.547f).let { it - floor(it) }
+
+/** One blink, 0 open … 1 shut: down in 70 ms, back up in 130 ms. */
+private fun blinkShape(dt: Float): Float = when {
+    dt < 0f || dt > 0.2f -> 0f
+    dt < 0.07f -> (dt / 0.07f).let { it * it * (3 - 2 * it) }
+    else -> (1f - (dt - 0.07f) / 0.13f).let { it * it }
+}
+
+/**
+ * Blink, 0 open … 1 shut: 2.2–5.4 s apart, and about one in five a quick double. Pure in [t] so a
+ * render is repeatable.
+ */
 internal fun blinkAt(t: Float): Float {
-    val period = 4.5f
-    val n = floor(t / period)
-    val jitter = (sin(n * 12.9898f) * 43758.547f).let { it - floor(it) }
-    val dt = t - (n * period + jitter * 1.5f)
-    val dur = 0.16f
-    return if (dt in 0f..dur) sin(PI.toFloat() * dt / dur) else 0f
+    val slot = 3.8f
+    val n = floor(t / slot)
+    var b = 0f
+    for (k in listOf(n - 1, n)) {
+        val start = k * slot + hash(k, 12.9898f) * 1.6f
+        b = maxOf(b, blinkShape(t - start))
+        if (hash(k, 78.233f) < 0.22f) b = maxOf(b, blinkShape(t - start - 0.23f))
+    }
+    return b
 }
 
 /**
@@ -127,16 +150,28 @@ internal fun DrawScope.drawStudioFace(
     previousAlpha: Float = 0f,
     progress: Float? = null,
     glow: Boolean = true,
+    gaze: Offset? = null,
 ) {
     val s = min(size.width, size.height) * 0.78f
     val pose = MascotMotion.pose(motion, motionT)
-    val c = Offset(size.width / 2 + pose.dx * s, size.height / 2 + s * 0.03f + pose.dy * s)
+    val turn = gaze ?: Offset.Zero
+    val c = Offset(
+        size.width / 2 + pose.dx * s + turn.x * s * 0.03f,
+        size.height / 2 + s * 0.03f + pose.dy * s + turn.y * s * 0.02f,
+    )
     translate(c.x, c.y) {
         rotate(pose.rotation, pivot = Offset.Zero) {
             scale(pose.scaleX, pose.scaleY, pivot = Offset(0f, s / 2)) {
                 drawBody(s, glow)
-                drawEyes(s, p, t)
-                drawMouth(s, p)
+                // the face turns toward what it looks at: eyes and mouth slide across the body and
+                // narrow a little, like features on a head turning — big enough to read even at
+                // menu-bar size, where moving the eyes alone is under a pixel
+                translate(turn.x * s * 0.10f, turn.y * s * 0.07f) {
+                    scale(1f - 0.10f * abs(turn.x), 1f - 0.06f * abs(turn.y), pivot = Offset.Zero) {
+                        drawEyes(s, p, t, gaze)
+                        drawMouth(s, p)
+                    }
+                }
                 val anchor = Offset(s * 0.43f, -s * 0.45f)
                 if (previousAccent != null && previousAlpha > 0.01f) drawAccent(previousAccent, anchor, s, t, previousAlpha, progress)
                 if (accent != null && accentAlpha > 0.01f) drawAccent(accent, anchor, s, t, accentAlpha, progress)
@@ -178,11 +213,13 @@ private fun teardrop(w: Float, h: Float) = Path().apply {
     close()
 }
 
-private fun DrawScope.drawEyes(s: Float, p: FaceParams, t: Float) {
+private fun DrawScope.drawEyes(s: Float, p: FaceParams, t: Float, gaze: Offset? = null) {
     val blink = blinkAt(t)
     val scan = p.scan * sin(t * 2.4f) * 0.9f
-    val lookX = p.lookX + scan + 0.12f * sin(t * 0.7f) * (1f - p.scan)
-    val lookY = p.lookY + 0.08f * sin(t * 0.53f)
+    // a gaze replaces the mood's look and the idle drift; the eyes lead the turn a little (barely
+    // when looking down, where the mouth sits right below them)
+    val lookX = if (gaze != null) scan + gaze.x * 0.8f * (1f - p.scan) else p.lookX + scan + 0.12f * sin(t * 0.7f) * (1f - p.scan)
+    val lookY = if (gaze != null) gaze.y * (if (gaze.y > 0) 0.2f else 0.9f) else p.lookY + 0.08f * sin(t * 0.53f)
     val w = s * 0.16f * p.eyeScale
     val h = s * 0.23f * p.eyeScale
     for (side in listOf(-1f, 1f)) {

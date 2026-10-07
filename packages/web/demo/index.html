@@ -46,6 +46,8 @@
 
     const big = new StudioFacePlayer(sized(document.getElementById('big'), 220), 'idle');
     big.progress = 0.45;
+    // the big face watches the pointer, like the notch companion watches the cursor
+    if (!matchMedia('(prefers-reduced-motion: reduce)').matches) big.followPointer();
     document.getElementById('progress').oninput = (e) => (big.progress = e.target.value / 100);
 
     const moods = Object.keys(faceExpressions).sort();

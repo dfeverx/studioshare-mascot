@@ -22,6 +22,8 @@ import org.jetbrains.skia.EncodedImageFormat
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+import androidx.compose.ui.unit.DpSize
 
 /**
  * The notch companion's status line, plus a render of each bar state to
@@ -43,22 +45,53 @@ class StudioFaceNotchCompanionTest {
         assertEquals("New booking!", compactLine(alert))
     }
 
+    @Test fun earBadgeIsShort() {
+        assertEquals(null, earBadge(MascotAgentState.Idle()))
+        assertEquals("43%", earBadge(upload))
+        assertEquals("!", earBadge(warning))
+    }
+
+    @Test fun islandSpansTheNotchWithAnEarEachSide() {
+        val notched = NotchGeometry(0, 0, 1512, 185.dp, 38.dp)
+        assertEquals(DpSize(185.dp + EAR * 2, 38.dp), compactSize(notched))
+        assertEquals(38.dp + EXPANDED.height, expandedSize(notched).height)
+        // the window is fixed and holds the open island, so opening never resizes it
+        assertTrue(stageSize(notched).width > expandedSize(notched).width)
+        assertTrue(stageSize(notched).height > expandedSize(notched).height)
+        val flat = notched.copy(notchWidth = 0.dp, bandHeight = 30.dp)
+        assertEquals(DpSize(COMPACT.width, 30.dp), compactSize(flat))
+    }
+
+    @Test fun faceRestsInTheLeftEarAndMovesToTheCard() {
+        val notched = NotchGeometry(0, 0, 1512, 185.dp, 38.dp)
+        val rest = facePlacement(notched, expanded = false)
+        assertEquals(EAR / 2, rest.centre.x)
+        assertTrue(rest.size < notched.bandHeight)
+        val open = facePlacement(notched, expanded = true)
+        assertTrue(open.centre.y > notched.bandHeight && open.size > rest.size)
+    }
+
     @Test fun renderStates() {
         val agent = MascotAgent()
         val w = EXPANDED.width.value.toInt()
         val bars: List<Pair<Int, @Composable () -> Unit>> = listOf(
-            COMPACT.height.value.toInt() to { Compact(MascotAgentState.Idle()) {} },
-            COMPACT.height.value.toInt() to { Compact(upload) {} },
-            EXPANDED.height.value.toInt() to { Expanded(agent, upload) {} },
-            EXPANDED.height.value.toInt() to { Expanded(agent, warning) {} },
-            EXPANDED.height.value.toInt() to { Expanded(agent, alert) {} },
+            COMPACT.height.value.toInt() to { Compact(MascotAgentState.Idle(), onOpenMainApp = {}) },
+            COMPACT.height.value.toInt() to { Compact(upload, onOpenMainApp = {}) },
+            38 to { NotchBand(upload, 185.dp, onOpenMainApp = {}) },
+            EXPANDED.height.value.toInt() to { Expanded(agent, upload, onOpenMainApp = {}) },
+            EXPANDED.height.value.toInt() to { Expanded(agent, warning, onOpenMainApp = {}) },
+            EXPANDED.height.value.toInt() to { Expanded(agent, alert, onOpenMainApp = {}) },
         )
         val gap = 12
         val h = bars.sumOf { it.first + gap }
         ImageComposeScene(w * 2, h * 2, Density(2f)) {
             Column(Modifier.background(Color(0xFF2C2C30))) {
                 bars.forEach { (bh, content) ->
-                    val bw = if (bh == COMPACT.height.value.toInt()) COMPACT.width else EXPANDED.width
+                    val bw = when (bh) {
+                        COMPACT.height.value.toInt() -> COMPACT.width
+                        38 -> 185.dp + EAR * 2
+                        else -> EXPANDED.width
+                    }
                     Box(Modifier.size(bw, bh.dp).background(INK)) { content() }
                     Spacer(Modifier.height(gap.dp))
                 }

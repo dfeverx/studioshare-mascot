@@ -126,14 +126,43 @@ export function motionPose(motion: string, t: number): Pose {
   }
 }
 
-/** Blink, 0 open … 1 shut, every 3–6 s; pure in t. */
+/** Where to look: x and y each −1..1, right and down positive. */
+export interface Gaze { x: number; y: number }
+
+/**
+ * Which way to look at something `dx`, `dy` CSS pixels away: each axis on its own, turning hard for
+ * a nearby offset and settling as it grows — so a pointer far below and a little to the side still
+ * gets a real sideways look. Same curve as `gazeToward` in the KMP library.
+ */
+export const gazeToward = (dx: number, dy: number): Gaze => ({ x: Math.tanh(dx / 260), y: Math.tanh(dy / 200) });
+
+const hash = (n: number, seed: number) => {
+  const j = Math.sin(n * seed) * 43758.547;
+  return j - Math.floor(j);
+};
+
+/** One blink, 0 open … 1 shut: down in 70 ms, back up in 130 ms. */
+function blinkShape(dt: number): number {
+  if (dt < 0 || dt > 0.2) return 0;
+  if (dt < 0.07) {
+    const u = dt / 0.07;
+    return u * u * (3 - 2 * u);
+  }
+  const u = 1 - (dt - 0.07) / 0.13;
+  return u * u;
+}
+
+/** Blink, 0 open … 1 shut: 2.2–5.4 s apart, and about one in five a quick double. Pure in t. */
 export function blinkAt(t: number): number {
-  const period = 4.5;
-  const n = Math.floor(t / period);
-  const j = Math.sin(n * 12.9898) * 43758.547;
-  const dt = t - (n * period + (j - Math.floor(j)) * 1.5);
-  const dur = 0.16;
-  return dt >= 0 && dt <= dur ? Math.sin((Math.PI * dt) / dur) : 0;
+  const slot = 3.8;
+  const n = Math.floor(t / slot);
+  let b = 0;
+  for (const k of [n - 1, n]) {
+    const start = k * slot + hash(k, 12.9898) * 1.6;
+    b = Math.max(b, blinkShape(t - start));
+    if (hash(k, 78.233) < 0.22) b = Math.max(b, blinkShape(t - start - 0.23));
+  }
+  return b;
 }
 
 // ---- drawing ---------------------------------------------------------------------------------
@@ -209,11 +238,13 @@ function drawBody(ctx: Ctx, s: number, glow: boolean) {
   }
 }
 
-function drawEyes(ctx: Ctx, s: number, p: FaceParams, t: number) {
+function drawEyes(ctx: Ctx, s: number, p: FaceParams, t: number, gaze?: Gaze | null) {
   const blink = blinkAt(t);
   const scan = p.scan * Math.sin(t * 2.4) * 0.9;
-  const lookX = p.lookX + scan + 0.12 * Math.sin(t * 0.7) * (1 - p.scan);
-  const lookY = p.lookY + 0.08 * Math.sin(t * 0.53);
+  // a gaze replaces the mood's look and the idle drift; the eyes lead the turn a little (barely
+  // when looking down, where the mouth sits right below them)
+  const lookX = gaze ? scan + gaze.x * 0.8 * (1 - p.scan) : p.lookX + scan + 0.12 * Math.sin(t * 0.7) * (1 - p.scan);
+  const lookY = gaze ? gaze.y * (gaze.y > 0 ? 0.2 : 0.9) : p.lookY + 0.08 * Math.sin(t * 0.53);
   const w = s * 0.16 * p.eyeScale;
   const h = s * 0.23 * p.eyeScale;
   for (const side of [-1, 1]) {
@@ -509,6 +540,8 @@ export interface DrawFaceOptions {
   previousAlpha?: number;
   progress?: number | null;
   glow?: boolean;
+  /** Where to look ([gazeToward] makes one); omitted, the eyes drift on their own. */
+  gaze?: Gaze | null;
 }
 
 /** Draws the face filling a `width × height` area at the canvas origin. */
@@ -516,14 +549,21 @@ export function drawStudioFace(ctx: Ctx, width: number, height: number, o: DrawF
   const s = Math.min(width, height) * 0.78;
   const pose = motionPose(o.motion, o.motionT);
   ctx.save();
-  ctx.translate(width / 2 + pose.dx * s, height / 2 + s * 0.03 + pose.dy * s);
+  const turn = o.gaze ?? { x: 0, y: 0 };
+  ctx.translate(width / 2 + pose.dx * s + turn.x * s * 0.03, height / 2 + s * 0.03 + pose.dy * s + turn.y * s * 0.02);
   ctx.rotate(deg(pose.rot));
   ctx.translate(0, s / 2);
   ctx.scale(pose.sx, pose.sy);
   ctx.translate(0, -s / 2);
   drawBody(ctx, s, o.glow ?? true);
-  drawEyes(ctx, s, o.params, o.t);
+  // the face turns toward what it looks at: eyes and mouth slide across the body and narrow a
+  // little, like features on a head turning — readable even at a small size
+  ctx.save();
+  ctx.translate(turn.x * s * 0.1, turn.y * s * 0.07);
+  ctx.scale(1 - 0.1 * Math.abs(turn.x), 1 - 0.06 * Math.abs(turn.y));
+  drawEyes(ctx, s, o.params, o.t, o.gaze);
   drawMouth(ctx, s, o.params);
+  ctx.restore();
   const ax = s * 0.43, ay = -s * 0.45;
   if (o.previousAccent && (o.previousAlpha ?? 0) > 0.01) drawAccent(ctx, o.previousAccent, ax, ay, s, o.t, o.previousAlpha ?? 0, o.progress);
   if (o.accent) drawAccent(ctx, o.accent, ax, ay, s, o.t, o.accentAlpha ?? 1, o.progress);
@@ -534,6 +574,8 @@ export function drawStudioFace(ctx: Ctx, width: number, height: number, o: DrawF
 export const motionOf = (mood: string): string => mascotMoodMotions[mood] ?? 'none';
 
 const TWEEN_SECONDS = 0.25;
+/** How fast the face catches up with its gaze, per second: a soft follow, not a snap. */
+const GAZE_RATE = 6;
 
 /**
  * Animates the face on a canvas: blinks, motion, and a short tween on every mood change.
@@ -548,7 +590,12 @@ export class StudioFacePlayer {
   private changedAt = 0;
   private raf = 0;
   private start = performance.now();
+  private lookedAt = 0;
+  private looking: Gaze | null = null;
+  private stopFollowing?: () => void;
   progress: number | null = null;
+  /** Where to look, x and y each −1..1; null lets the eyes drift. The face eases toward it. */
+  gaze: Gaze | null = null;
 
   constructor(private canvas: HTMLCanvasElement, mood = 'idle', private animate = true) {
     this.mood = mood;
@@ -574,8 +621,35 @@ export class StudioFacePlayer {
     this.raf = requestAnimationFrame(this.frame);
   }
 
+  /**
+   * Turns the face to watch the pointer anywhere on the page (like the notch companion watches the
+   * cursor). Returns a function that stops it; `dispose()` stops it too.
+   */
+  followPointer(): () => void {
+    this.stopFollowing?.();
+    let px: number | null = null, py = 0;
+    const look = () => {
+      if (px == null) return;
+      const r = this.canvas.getBoundingClientRect();
+      this.gaze = gazeToward(px - (r.left + r.width / 2), py - (r.top + r.height / 2));
+    };
+    const move = (e: PointerEvent) => { px = e.clientX; py = e.clientY; look(); };
+    // scrolling moves the face under a still pointer, so look again then too
+    window.addEventListener('pointermove', move, { passive: true });
+    window.addEventListener('scroll', look, { passive: true });
+    const stop = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('scroll', look);
+      this.gaze = null;
+      if (this.stopFollowing === stop) this.stopFollowing = undefined;
+    };
+    this.stopFollowing = stop;
+    return stop;
+  }
+
   dispose() {
     cancelAnimationFrame(this.raf);
+    this.stopFollowing?.();
   }
 
   private now() {
@@ -598,6 +672,14 @@ export class StudioFacePlayer {
     this.drawn = params;
     const accent = expressionFor(this.mood).accent;
     const same = this.fromAccent === accent;
+    const g = this.gaze ? { x: Math.max(-1, Math.min(1, this.gaze.x)), y: Math.max(-1, Math.min(1, this.gaze.y)) } : null;
+    if (!g) this.looking = null;
+    else if (!this.animate || !this.looking) this.looking = g;
+    else {
+      const k = 1 - Math.exp(-GAZE_RATE * Math.min(Math.max(t - this.lookedAt, 0), 0.1));
+      this.looking = { x: this.looking.x + (g.x - this.looking.x) * k, y: this.looking.y + (g.y - this.looking.y) * k };
+    }
+    this.lookedAt = t;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     drawStudioFace(ctx, this.canvas.width, this.canvas.height, {
@@ -610,6 +692,7 @@ export class StudioFacePlayer {
       previousAccent: same ? undefined : this.fromAccent,
       previousAlpha: 1 - eased,
       progress: this.progress,
+      gaze: this.looking,
     });
   }
 }

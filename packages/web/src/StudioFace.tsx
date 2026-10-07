@@ -14,13 +14,15 @@ export interface StudioFaceProps {
   /** Rendered size in CSS pixels (square). Default 96. */
   size?: number;
   className?: string;
+  /** Turn to watch the pointer anywhere on the page. Off under prefers-reduced-motion. */
+  followPointer?: boolean;
 }
 
 /**
  * The StudioShare app-icon face on the web: the same moods and moments as the apps, drawn in code
  * on a canvas (no images to load). Decorative (aria-hidden). Honours prefers-reduced-motion.
  */
-export function StudioFace({ moment, mood, progress, size = 96, className }: StudioFaceProps) {
+export function StudioFace({ moment, mood, progress, size = 96, className, followPointer = false }: StudioFaceProps) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const player = useRef<StudioFacePlayer | null>(null);
   const shown = moment ? moodForMoment(moment) : mood ?? 'idle';
@@ -46,6 +48,12 @@ export function StudioFace({ moment, mood, progress, size = 96, className }: Stu
   useEffect(() => {
     if (player.current) player.current.progress = progress ?? null;
   }, [progress]);
+
+  useEffect(() => {
+    const p = player.current;
+    if (!p || !followPointer || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    return p.followPointer();
+  }, [followPointer, size]);
 
   return <canvas ref={canvas} aria-hidden="true" className={className} style={{ width: size, height: size }} />;
 }

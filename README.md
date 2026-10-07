@@ -5,7 +5,7 @@ rounded square with gradient drop eyes and a gradient smile) as a living charact
 in code. There is no image data, no art pipeline and no pack to download.
 - **Compose Multiplatform library (`:mascot-core`):** the `StudioFace` composable, moods → expressions, moments → moods, the director and the floating stage, for Android, iOS, macOS and Windows.
 - **Web library (`@studioshare/mascot`):** the same face on a 2D canvas (`StudioFace` for React, `StudioFacePlayer` for plain JS), plus the moments map.
-- **Desktop background agent (`:mascot-agent`):** the notch-style companion bar, the floating HUD, the menu-bar/tray companion and native OS notifications for uploads, warnings and milestones.
+- **Desktop background agent (`:mascot-agent`):** the notch companion (the face living in the MacBook notch), the floating HUD, the menu-bar/tray companion and native OS notifications for uploads, warnings and milestones.
 - **Testbench (`:mascot-preview`):** a desktop app to browse every mood and moment and simulate agent events.
 
 ---
@@ -92,16 +92,26 @@ agent.postAlert(
 // Anywhere in Compose (Android, iOS, desktop):
 StudioFace(mood = "uploading", progress = 0.45f, modifier = Modifier.size(64.dp))
 
-// Desktop: a notch-style bar at the top centre of the screen, fed by the agent.
+// Watching something: gaze is read every frame, x/y each −1..1. gazeToward(dx, dy) makes one.
+StudioFace(mood = "idle", gaze = { gazeToward(dx, dy) })
+
+// Desktop: the face living in the MacBook notch, fed by the agent.
 StudioFaceNotchCompanion(agent = agent, visible = true, onClose = {}, onOpenMainApp = {})
 ```
 
-The bar is compact (face + one line, plus a percentage while working). It opens into a card on hover,
-for a warning (with its action and Dismiss buttons), and for an alert.
+The notch companion follows [Coucou](https://github.com/Louis-CFM/coucou)'s Mochi. A black island sits
+flush with the top of the screen above the menu bar (`MacNotch` lifts it there through the
+Objective-C runtime). It reaches past the notch with the face in the left ear and a badge (`43%`,
+`!`) in the right. The face turns to watch the cursor anywhere on screen. Click it and it springs open
+into a card. It folds back two seconds after the mouse leaves. Warnings hold it open until
+dismissed, and alerts until the agent drops them. Resting the mouse on the face makes it grow, and
+after a moment blush. Without a notch it is a small island with the face and one line of status. Its
+bottom corners are rounded so it reads as part of the notch, the one exception to the no-radius rule.
 
 On the web:
 ```tsx
 <StudioFace moment={MascotMoments.uploadDone} size={64} />
+<StudioFace mood="idle" followPointer />   {/* watches the pointer, like the notch companion */}
 ```
 
 ---
@@ -121,8 +131,9 @@ Opens the interactive stage with:
 ```bash
 ./gradlew :mascot-core:jvmTest :mascot-agent:jvmTest
 ```
-These also render `packages/kmp/build/studio-face-preview/moods.png` (every mood) and
-`packages/agent/build/studio-face-notch/states.png` (the notch bar states).
+These also render `packages/kmp/build/studio-face-preview/moods.png` (every mood),
+`packages/kmp/build/studio-face-preview/gaze.png` (the face looking every way) and
+`packages/agent/build/studio-face-notch/states.png` (the notch companion's states).
 
 ### Preview in Browser:
 ```bash

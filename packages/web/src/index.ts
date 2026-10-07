@@ -5,6 +5,8 @@ export {
   expressionFor,
   faceExpressions,
   studioFacePalette,
+  gazeToward,
+  type Gaze,
   type FaceExpression,
   type EyeShape,
   type MouthShape,
