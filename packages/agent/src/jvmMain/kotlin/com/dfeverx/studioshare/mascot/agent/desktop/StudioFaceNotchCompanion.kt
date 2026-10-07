@@ -171,6 +171,9 @@ private const val HIDE_AFTER_LEAVE_MS = 60_000L
 internal const val SLEEP_AFTER_MS = 10_000L
 /** A new task opens with its progress this long, then folds back to a ring in compact. */
 private const val TASK_PEEK_MS = 3_500L
+/** Going up a look (tab → compact → open), the next step waits this long; coming down, the other. */
+private const val STEP_OPEN_MS = 320L
+private const val STEP_CLOSE_MS = 340L
 /** Resting the mouse on the face this long makes it blush; then not again for a while. */
 private const val LOVE_AFTER_MS = 1_900L
 private const val LOVE_COOLDOWN_MS = 6_000L
@@ -248,6 +251,13 @@ internal sealed interface NotchCard {
 
 /** How the island is: hidden in the notch, compact around it, or open with a card. */
 internal enum class Look { Hidden, Compact, Open }
+
+/** One look nearer [target] from [current], never skipping one: Hidden ↔ Compact ↔ Open. */
+internal fun nextLookToward(current: Look, target: Look): Look = when {
+    target > current -> Look.entries[current.ordinal + 1]
+    target < current -> Look.entries[current.ordinal - 1]
+    else -> current
+}
 
 /**
  * The look for what is showing: a card opens the island; otherwise a hover ([peeking]) or something
@@ -451,6 +461,15 @@ fun StudioFaceNotchCompanion(
         soundFor(lastLook, look, shown)?.let(sounds::play)
         lastLook = look
     }
+    // the island walks there one look at a time: the tab, then the face moving out to its side, then the
+    // card opening — and back the same way, folding the card before the face goes home
+    var drawnLook by remember { mutableStateOf(look) }
+    LaunchedEffect(look) {
+        while (drawnLook != look) {
+            drawnLook = nextLookToward(drawnLook, look)
+            if (drawnLook != look) delay(if (look > drawnLook) STEP_OPEN_MS else STEP_CLOSE_MS)
+        }
+    }
 
     val stage = stageSize(notch)
     val windowState = rememberWindowState(size = stage, position = topCentre(notch, stage.width))
@@ -511,7 +530,7 @@ fun StudioFaceNotchCompanion(
                 if (presence > 0f) Island(
                     state = state,
                     card = shown,
-                    look = look,
+                    look = drawnLook,
                     notch = notch,
                     mood = if (love) "shy" else shown?.mood ?: state.currentMood,
                     // a blush hides behind its hands; a card gestures if its moment does

@@ -55,6 +55,16 @@ class StudioFaceNotchCompanionTest {
         AgentAlert("c", "All photos uploaded!", "", mood = "celebrating", label = "Upload", hands = HandGesture.Cheer),
     )
 
+    @Test fun islandOpensAndClosesOneLookAtATime() {
+        // a notification: the tab, then the face out to the side, then the card
+        assertEquals(Look.Compact, nextLookToward(Look.Hidden, Look.Open))
+        assertEquals(Look.Open, nextLookToward(Look.Compact, Look.Open))
+        // and back: the card folds before the face goes home
+        assertEquals(Look.Compact, nextLookToward(Look.Open, Look.Hidden))
+        assertEquals(Look.Hidden, nextLookToward(Look.Compact, Look.Hidden))
+        assertEquals(Look.Open, nextLookToward(Look.Open, Look.Open))
+    }
+
     @Test fun onlySomethingNewWakesASleepingIsland() {
         assertNull(actionKey(MascotAgentState.Idle()))
         assertNull(actionKey(MascotAgentState.Alert(AgentAlert("q", "", "", mood = "glance", quiet = true))))
