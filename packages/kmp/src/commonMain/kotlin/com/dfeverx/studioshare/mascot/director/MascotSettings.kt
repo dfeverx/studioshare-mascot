@@ -83,6 +83,5 @@ class MascotSettings(private val store: MascotPrefsStore) {
         const val KEY_OFF = "mascot_off"
         const val KEY_DOCK = "mascot_dock"
         const val KEY_FIRSTS = "mascot_firsts"
-        const val KEY_CHECKED_AT = "mascot_checked_at"
     }
 }

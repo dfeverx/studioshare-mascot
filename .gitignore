@@ -5,3 +5,4 @@ build/
 .idea/
 node_modules/
 *.log
+packages/web/dist/

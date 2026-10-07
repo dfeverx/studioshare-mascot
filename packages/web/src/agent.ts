@@ -149,11 +149,11 @@ class WebMascotAgent {
     if (document.visibilityState === 'visible') return; // Only notify if in background
 
     if (Notification.permission === 'granted') {
-      new Notification(title, { body, icon: '/mascot/favicon.ico' });
+      new Notification(title, { body, icon: '/favicon.ico' });
     } else if (Notification.permission !== 'denied') {
       Notification.requestPermission().then((permission) => {
         if (permission === 'granted') {
-          new Notification(title, { body, icon: '/mascot/favicon.ico' });
+          new Notification(title, { body, icon: '/favicon.ico' });
         }
       });
     }

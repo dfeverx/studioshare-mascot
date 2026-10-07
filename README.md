@@ -1,11 +1,12 @@
 # StudioShare Mascot (`studioshare-mascot`)
 
-A modular, standalone project hosting the StudioShare 3D mascot companion:
-- **3D Asset & Animation Pipeline:** Blender source model, automated rendering, and WebP atlas packaging.
-- **Compose Multiplatform Library (`:mascot-core`):** Frame player, procedural vector rig fallback, director, and stage placement for Android, iOS, macOS, and Windows.
-- **Web Library (`@studioshare/mascot`):** High-performance HTML5 Canvas player and React component.
-- **Desktop Background Agent (`:mascot-agent`):** Companion agent that lives in the macOS Menu Bar / Windows System Tray, provides floating companion HUDs, and sends native OS notifications for background tasks, system warnings, and milestones.
-- **Interactive Testbench & Preview (`:mascot-preview`):** Standalone desktop GUI to preview all moods, test rig poses, and simulate agent triggers.
+A small, standalone project for the StudioShare companion: the **StudioShare app-icon face** (a black
+rounded square with gradient drop eyes and a gradient smile) as a living character, drawn entirely
+in code. There is no image data, no art pipeline and no pack to download.
+- **Compose Multiplatform library (`:mascot-core`):** the `StudioFace` composable, moods → expressions, moments → moods, the director and the floating stage, for Android, iOS, macOS and Windows.
+- **Web library (`@studioshare/mascot`):** the same face on a 2D canvas (`StudioFace` for React, `StudioFacePlayer` for plain JS), plus the moments map.
+- **Desktop background agent (`:mascot-agent`):** the notch-style companion bar, the floating HUD, the menu-bar/tray companion and native OS notifications for uploads, warnings and milestones.
+- **Testbench (`:mascot-preview`):** a desktop app to browse every mood and moment and simulate agent events.
 
 ---
 
@@ -13,57 +14,39 @@ A modular, standalone project hosting the StudioShare 3D mascot companion:
 
 ```
 studioshare-mascot/
-├── pipeline/                          # 3D character assets & pack generation
-│   ├── model/mascot.blend             # Blender 3D rigged character
-│   ├── blender/                       # Python Blender scripts (build_model.py, render.py)
-│   ├── spec/mascot.json               # Master specification (moods, motions, props, moments)
-│   ├── src/                           # Rendered PNG frames (moods & moments)
-│   ├── dist/                          # Compiled distribution pack (manifest.json + WebP atlases)
-│   ├── tools/                         # CLI tools (pack.mjs, import.mjs)
-│   └── docs/                          # ART.md, SHOTLIST.md, PROMPTS.md
+├── spec/mascot.json                   # The one file to edit: 30 moods (+ motion) and 470 moments → mood
+├── tools/moments.mjs                  # Validates the spec, generates the Kotlin + TS bindings (no deps)
 │
 ├── packages/
 │   ├── kmp/                           # :mascot-core Compose Multiplatform SDK
-│   │   ├── build.gradle.kts
-│   │   └── src/                       # Common Kotlin, Android, and Skia decoders
+│   │   └── src/commonMain/.../mascot/
+│   │       ├── face/                  # StudioFace, expressions, drawing
+│   │       ├── MascotMoments.kt       # GENERATED moment-key constants
+│   │       ├── MascotMomentTable.kt   # GENERATED moment → mood, mood → motion
+│   │       └── director/ stage/ render/MascotMotion.kt
 │   │
 │   ├── web/                           # @studioshare/mascot Web / React SDK
-│   │   ├── package.json
-│   │   ├── src/                       # MascotSprite.tsx, pack.ts, moments.ts, agent.ts
-│   │   └── demo/index.html            # Standalone browser testbed
+│   │   ├── src/                       # face.ts, StudioFace.tsx, moments.ts (GENERATED), agent.ts
+│   │   └── demo/index.html            # Browser preview of every mood
 │   │
-│   └── agent/                         # :mascot-agent Desktop Background Companion
-│       ├── build.gradle.kts
-│       └── src/                       # MascotAgent, MascotTrayCompanion, MascotMiniCompanionWindow
+│   └── agent/                         # :mascot-agent desktop companion
+│       └── src/                       # MascotAgent, StudioFaceNotchCompanion, MascotMiniCompanionWindow, tray, notifier
 │
 └── apps/
-    └── desktop-preview/               # :mascot-preview Desktop GUI Testbench
-        ├── build.gradle.kts
-        └── src/                       # Standalone Compose Desktop preview app
+    └── desktop-preview/               # :mascot-preview desktop testbench
 ```
 
 ---
 
 ## 1. How Character Updates Work
 
-Adding or changing character moods, outfits, or animations is frictionless:
-
-1. **Edit the Character / Animations:**
-   - In Blender: `pipeline/model/mascot.blend` or automate via `pipeline/blender/build_model.py` and `pipeline/blender/render.py`.
-   - In Spec: Update `pipeline/spec/mascot.json` (define moods, keyframes, or moment mappings).
-
-2. **Rebuild the Pack & Generate Bindings:**
-   ```bash
-   npm run pack
-   ```
-   This single command:
-   - Validates frames and trims bounds.
-   - Generates optimized WebP atlases in `pipeline/dist/atlas/`.
-   - Computes SHA-256 hashes and outputs versioned `manifest.json`.
-   - Automatically generates `MascotMoments.kt` in `packages/kmp/` and `moments.ts` in `packages/web/`.
-
-3. **Over-The-Air (OTA) Updates:**
-   - When `pipeline/dist/` is deployed to `/mascot/` on web or CDN, running client apps automatically detect the new version within 6 hours and hot-reload the character without needing a binary app update.
+- **What the mascot does at a moment / a mood's motion:** edit `spec/mascot.json`, then run
+  `npm run moments`. That regenerates `MascotMoments.kt`, `MascotMomentTable.kt` and the web's
+  `moments.ts`. Moment keys are append-only and never renamed.
+- **How the face looks in a mood:** edit `face/StudioFaceExpression.kt`, and the matching line in
+  `packages/web/src/face.ts`. Tests fail if a mood has no expression or its motion disagrees with the spec.
+- Everything is code, so a change ships with the app (and the web) like any other change. There is no
+  pack and no over-the-air art update.
 
 ---
 
@@ -104,6 +87,23 @@ agent.postAlert(
 )
 ```
 
+### The face and the notch companion
+```kotlin
+// Anywhere in Compose (Android, iOS, desktop):
+StudioFace(mood = "uploading", progress = 0.45f, modifier = Modifier.size(64.dp))
+
+// Desktop: a notch-style bar at the top centre of the screen, fed by the agent.
+StudioFaceNotchCompanion(agent = agent, visible = true, onClose = {}, onOpenMainApp = {})
+```
+
+The bar is compact (face + one line, plus a percentage while working). It opens into a card on hover,
+for a warning (with its action and Dismiss buttons), and for an alert.
+
+On the web:
+```tsx
+<StudioFace moment={MascotMoments.uploadDone} size={64} />
+```
+
 ---
 
 ## 3. Running & Testing Standalone
@@ -113,17 +113,19 @@ agent.postAlert(
 ./gradlew :mascot-preview:run
 ```
 Opens the interactive stage with:
-- Live mascot viewport (switch between 25+ moods and Light/Dark themes).
-- Background Agent simulator (test upload progress, post warnings, trigger booking alerts).
-- Floating desktop companion toggle.
+- The face for every mood and moment.
+- The background agent simulator (upload progress, warnings, booking alerts).
+- Toggles for the floating HUD and the notch companion.
 
-### Run KMP Unit Tests:
+### Run the tests:
 ```bash
-./gradlew :mascot-core:jvmTest
+./gradlew :mascot-core:jvmTest :mascot-agent:jvmTest
 ```
+These also render `packages/kmp/build/studio-face-preview/moods.png` (every mood) and
+`packages/agent/build/studio-face-notch/states.png` (the notch bar states).
 
 ### Preview in Browser:
-Open `packages/web/demo/index.html` in any browser or start a static server:
 ```bash
-npx serve packages/web/demo
+npm run build:web     # compiles packages/web/src → packages/web/dist
+npx serve .           # then open /packages/web/demo/
 ```

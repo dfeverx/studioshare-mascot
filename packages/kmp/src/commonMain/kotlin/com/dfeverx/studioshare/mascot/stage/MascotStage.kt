@@ -37,12 +37,9 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.dfeverx.studioshare.mascot.LocalMascot
 import com.dfeverx.studioshare.mascot.MascotMoments
-import com.dfeverx.studioshare.mascot.pack.MascotPack
-import com.dfeverx.studioshare.mascot.render.MascotSprite
-import com.dfeverx.studioshare.mascot.rig.MascotFigure
-import com.dfeverx.studioshare.mascot.rig.RIG_H
-import com.dfeverx.studioshare.mascot.rig.RIG_W
-import com.dfeverx.studioshare.mascot.rig.RigColors
+import com.dfeverx.studioshare.mascot.MascotMomentMoods
+import com.dfeverx.studioshare.mascot.face.StudioFace
+import com.dfeverx.studioshare.mascot.render.MascotMotion
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -60,12 +57,12 @@ import kotlin.math.roundToInt
  * - Never stands on a `mascotAvoid` element; on compact it hides while the keyboard is up.
  * - [visible] false fades it out (immersive viewers, the lock screen); nothing animates meanwhile.
  *
- * Draws nothing at all when no controller is provided, the mascot is off, or no pack is loaded.
+ * The mascot is the StudioShare face, drawn in code. Draws nothing at all when no controller is
+ * provided or the mascot is off.
  */
 @Composable
 fun MascotStage(
     compact: Boolean,
-    dark: Boolean,
     reducedMotion: Boolean,
     modifier: Modifier = Modifier,
     visible: Boolean = true,
@@ -76,10 +73,7 @@ fun MascotStage(
     val enabled by mascot.settings.enabled.collectAsState()
     val hiddenForSession by mascot.settings.hiddenForSession.collectAsState()
     val ready by mascot.settings.ready.collectAsState()
-    LaunchedEffect(mascot, enabled) {
-        mascot.director.setEnabled(enabled)
-        if (enabled) mascot.packs.load()
-    }
+    LaunchedEffect(mascot, enabled) { mascot.director.setEnabled(enabled) }
     // Dozes off after a long stretch without input; the next touch or click wakes it with a wave.
     LaunchedEffect(mascot, enabled) {
         if (!enabled) return@LaunchedEffect
@@ -96,8 +90,6 @@ fun MascotStage(
         }
     }
     if (!ready || !enabled || hiddenForSession) return
-    val loaded by mascot.packs.pack.collectAsState()
-    val pack = loaded ?: return
     val scene by mascot.director.scene.collectAsState()
     val dock by mascot.settings.dock.collectAsState()
 
@@ -108,9 +100,9 @@ fun MascotStage(
 
     var stageOrigin by remember { mutableStateOf(Offset.Zero) }
     BoxWithConstraints(modifier.fillMaxSize().onGloballyPositioned { stageOrigin = it.positionInRoot() }) {
-        // Full body always: the rig's 100 × 140 box.
-        val widthDp = if (compact) 56.dp else 72.dp
-        val heightDp = widthDp * (RIG_H / RIG_W)
+        // The face is square.
+        val widthDp = if (compact) 48.dp else 60.dp
+        val heightDp = widthDp
         val pxW = with(density) { widthDp.toPx() }
         val pxH = with(density) { heightDp.toPx() }
         val margin = with(density) { 12.dp.toPx() }
@@ -127,7 +119,6 @@ fun MascotStage(
         val position = remember { Animatable(target, Offset.VectorConverter) }
         var placed by remember { mutableStateOf(false) }
         var walking by remember { mutableStateOf(false) }
-        var facingLeft by remember { mutableStateOf(false) }
         var dragging by remember { mutableStateOf(false) }
         var menuOpen by remember { mutableStateOf(false) }
         val scope = rememberCoroutineScope()
@@ -141,7 +132,6 @@ fun MascotStage(
                 placed = true
                 return@LaunchedEffect
             }
-            facingLeft = target.x < position.value.x
             walking = true
             try {
                 val millis = (distance / walkSpeed * 1000).roundToInt().coerceIn(250, 1600)
@@ -154,16 +144,21 @@ fun MascotStage(
         if (alpha == 0f) return@BoxWithConstraints
 
         // A once-per-account celebration is judged when its cue arrives, then remembered.
-        val first = remember(pack, scene.cueId) {
-            pack.pack.moments[scene.momentKey]?.first?.takeIf { scene.oneShot }
+        val first = remember(scene.cueId) {
+            MascotMomentMoods.moment(scene.momentKey)?.first?.takeIf { scene.oneShot }
         }
-        val firstSeen = remember(pack, scene.cueId) { first != null && mascot.settings.hasCelebrated(first) }
+        val firstSeen = remember(scene.cueId) { first != null && mascot.settings.hasCelebrated(first) }
         LaunchedEffect(scene.cueId, first) {
             if (first != null && !firstSeen) mascot.settings.markCelebrated(first)
         }
-        val sceneMood = remember(pack, scene.momentKey, firstSeen) { pack.pack.resolve(scene.momentKey, firstSeen) }
-        val walkMood = remember(pack) { pack.pack.resolveMood(MascotPack.MOOD_WALK).copy(momentKey = WALK_KEY) }
-        val current by rememberUpdatedState(scene)
+        val sceneMood = remember(scene.momentKey, firstSeen) { MascotMomentMoods.moodFor(scene.momentKey, firstSeen) }
+        // A one-shot holds the stage for its motion's length, then hands back to what was held.
+        LaunchedEffect(scene.cueId) {
+            if (scene.oneShot) {
+                delay((MascotMotion.ONE_SHOT_SECONDS * 1000).toLong())
+                mascot.director.finished(scene.cueId)
+            }
+        }
         val stageNow by rememberUpdatedState(stage)
         val insetNow by rememberUpdatedState(inset)
 
@@ -195,37 +190,11 @@ fun MascotStage(
                     }
                 },
         ) {
-            val onFinished = {
-                val s = current
-                if (s.oneShot) mascot.director.finished(s.cueId)
-            }
-            val shownMood = if (walking) walkMood else sceneMood
-            if (shownMood.art != null) {
-                // frame art from 3D renders, when a pack carries it for this mood
-                MascotSprite(
-                    resolved = shownMood,
-                    loaded = pack,
-                    dark = dark,
-                    cache = mascot.atlases,
-                    loop = walking || !scene.oneShot,
-                    animate = shown && !reducedMotion && !dragging,
-                    modifier = Modifier.fillMaxSize(),
-                    walking = walking,
-                    mirrored = walking && facingLeft,
-                    onFinished = onFinished,
-                )
-            } else {
-                MascotFigure(
-                    resolved = shownMood,
-                    colors = if (dark) RigColors.Light else RigColors.Dark,
-                    oneShot = scene.oneShot && !walking,
-                    walking = walking,
-                    mirrored = walking && facingLeft,
-                    animate = shown && !reducedMotion && !dragging,
-                    modifier = Modifier.fillMaxSize(),
-                    onFinished = onFinished,
-                )
-            }
+            StudioFace(
+                mood = if (walking) MascotMomentMoods.MOOD_WALK else sceneMood,
+                animate = shown && !reducedMotion && !dragging,
+                modifier = Modifier.fillMaxSize(),
+            )
             if (menuOpen && menu != null) menu { menuOpen = false }
         }
     }
@@ -236,4 +205,3 @@ private const val LONG_IDLE_MS = 3 * 60 * 1000L
 
 /** Walking pace across the screen. */
 private val WALK_SPEED = 420.dp
-private const val WALK_KEY = "walk"
