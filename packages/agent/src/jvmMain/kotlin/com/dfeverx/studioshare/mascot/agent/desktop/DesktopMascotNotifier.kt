@@ -51,8 +51,9 @@ class DesktopMascotNotifier(
     }
 
     private fun getSystemTrayIcon(): TrayIcon? {
-        if (!SystemTray.isSupported()) return null
-        val tray = SystemTray.getSystemTray()
-        return tray.trayIcons.firstOrNull()
+        return runCatching {
+            if (!SystemTray.isSupported()) null
+            else SystemTray.getSystemTray().trayIcons.firstOrNull()
+        }.getOrNull()
     }
 }
