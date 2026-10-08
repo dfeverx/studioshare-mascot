@@ -53,41 +53,18 @@ import com.dfeverx.studioshare.mascot.agent.MascotAgent
 import com.dfeverx.studioshare.mascot.agent.MascotAgentState
 import com.dfeverx.studioshare.mascot.agent.desktop.DesktopMascotNotifier
 import com.dfeverx.studioshare.mascot.agent.desktop.MascotMiniCompanionWindow
-import com.dfeverx.studioshare.mascot.pack.LoadedPack
-import com.dfeverx.studioshare.mascot.pack.MascotPack
-import com.dfeverx.studioshare.mascot.render.AtlasCache
-import com.dfeverx.studioshare.mascot.render.MascotSprite
-import com.dfeverx.studioshare.mascot.rig.MascotFigure
-import com.dfeverx.studioshare.mascot.rig.RigColors
-import com.dfeverx.studioshare.mascot.rig.RigPose
-import com.dfeverx.studioshare.mascot.rig.drawMascot
+import com.dfeverx.studioshare.mascot.agent.desktop.StudioFaceNotchCompanion
+import com.dfeverx.studioshare.mascot.face.StudioFace
+import com.dfeverx.studioshare.mascot.MascotMomentMoods
+import com.dfeverx.studioshare.mascot.MascotMoments
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.io.File
 
 fun main() = application {
     val agent = remember { MascotAgent() }
     val notifier = remember { DesktopMascotNotifier(agent) }
     var showCompanionWindow by remember { mutableStateOf(false) }
-
-    val manifestFile = remember {
-        listOf(
-            File("pipeline/dist/manifest.json"),
-            File("../../pipeline/dist/manifest.json")
-        ).firstOrNull { it.exists() }
-    }
-    val distDir = remember(manifestFile) { manifestFile?.parentFile }
-    val pack = remember(manifestFile) {
-        manifestFile?.let { runCatching { MascotPack.parse(it.readBytes()) }.getOrNull() }
-    }
-    val loadedPack = remember(pack, distDir) {
-        if (pack != null && distDir != null) {
-            LoadedPack(pack) { path ->
-                File(distDir, path).takeIf { it.exists() }?.readBytes()
-            }
-        } else null
-    }
-    val atlasCache = remember { AtlasCache(capacity = 32) }
+    var showNotchCompanion by remember { mutableStateOf(false) }
 
     Window(
         onCloseRequest = ::exitApplication,
@@ -95,10 +72,10 @@ fun main() = application {
     ) {
         PreviewScreen(
             agent = agent,
-            loadedPack = loadedPack,
-            atlasCache = atlasCache,
             showCompanionWindow = showCompanionWindow,
-            onToggleCompanionWindow = { showCompanionWindow = !showCompanionWindow }
+            onToggleCompanionWindow = { showCompanionWindow = !showCompanionWindow },
+            showNotchCompanion = showNotchCompanion,
+            onToggleNotchCompanion = { showNotchCompanion = !showNotchCompanion }
         )
     }
 
@@ -106,9 +83,14 @@ fun main() = application {
         agent = agent,
         visible = showCompanionWindow,
         onClose = { showCompanionWindow = false },
-        onOpenMainApp = { /* Focus main window */ },
-        loadedPack = loadedPack,
-        cache = atlasCache
+        onOpenMainApp = { /* Focus main window */ }
+    )
+
+    StudioFaceNotchCompanion(
+        agent = agent,
+        visible = showNotchCompanion,
+        onClose = { showNotchCompanion = false },
+        onOpenMainApp = { /* Focus main window */ }
     )
 }
 
@@ -116,54 +98,27 @@ fun main() = application {
 @Composable
 fun PreviewScreen(
     agent: MascotAgent,
-    loadedPack: LoadedPack?,
-    atlasCache: AtlasCache,
     showCompanionWindow: Boolean,
-    onToggleCompanionWindow: () -> Unit
+    onToggleCompanionWindow: () -> Unit,
+    showNotchCompanion: Boolean = false,
+    onToggleNotchCompanion: () -> Unit = {}
 ) {
     val scope = rememberCoroutineScope()
     val agentState by agent.state.collectAsState()
-    val pack = loadedPack?.pack
 
     var selectedMood by remember { mutableStateOf("idle") }
     var selectedMoment by remember { mutableStateOf("upload.done") }
+    /** Bumped on every moment click, so clicking one again replays its gesture. */
+    var momentPlays by remember { mutableStateOf(0) }
     var isMomentMode by remember { mutableStateOf(false) }
-    var isLooping by remember { mutableStateOf(true) }
     var isAnimating by remember { mutableStateOf(true) }
     var isDarkTheme by remember { mutableStateOf(true) }
     var simulatedProgress by remember { mutableFloatStateOf(0f) }
     var isSimulatingUpload by remember { mutableStateOf(false) }
 
-    val allMoods = remember(pack) {
-        pack?.moods?.keys?.sorted() ?: listOf(
-            "idle", "walk", "happy", "uploading", "careful", "celebrating", "proud", "thinking",
-            "searching", "scanning", "sleepy", "excited", "curious", "focused", "locked",
-            "oops", "sad", "shy", "patient", "waiting", "hot", "goodbye"
-        )
-    }
-    val allMoments = remember(pack) { pack?.moments?.keys?.sorted() ?: emptyList() }
-
-    val resolved = remember(pack, isMomentMode, selectedMood, selectedMoment) {
-        if (isMomentMode) {
-            pack?.resolve(selectedMoment) ?: MascotPack.Resolved(
-                momentKey = selectedMoment,
-                moodName = "idle",
-                mood = MascotPack.Mood(),
-                artName = "idle",
-                art = null,
-                first = null
-            )
-        } else {
-            pack?.resolveMood(selectedMood) ?: MascotPack.Resolved(
-                momentKey = null,
-                moodName = selectedMood,
-                mood = MascotPack.Mood(),
-                artName = selectedMood,
-                art = null,
-                first = null
-            )
-        }
-    }
+    val allMoods = remember { MascotMomentMoods.moods.sorted() }
+    val allMoments = remember { MascotMoments.all }
+    val shownMood = if (isMomentMode) MascotMomentMoods.moodFor(selectedMoment) else selectedMood
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -225,28 +180,14 @@ fun PreviewScreen(
                             .background(if (isDarkTheme) Color(0xFF141417) else Color(0xFFEBEBF0)),
                         contentAlignment = Alignment.Center
                     ) {
-                        if (loadedPack != null && resolved.art != null) {
-                            MascotSprite(
-                                resolved = resolved,
-                                loaded = loadedPack,
-                                dark = isDarkTheme,
-                                cache = atlasCache,
-                                loop = isLooping,
-                                animate = isAnimating,
-                                walking = !isMomentMode && selectedMood == "walk",
-                                modifier = Modifier.size(240.dp)
-                            )
-                        } else {
-                            MascotFigure(
-                                resolved = resolved,
-                                colors = if (isDarkTheme) RigColors.Light else RigColors.Dark,
-                                oneShot = !isLooping,
-                                walking = !isMomentMode && selectedMood == "walk",
-                                mirrored = false,
-                                animate = isAnimating,
-                                modifier = Modifier.size(240.dp)
-                            )
-                        }
+                        StudioFace(
+                            mood = shownMood,
+                            animate = isAnimating,
+                            progress = if (isSimulatingUpload) simulatedProgress else null,
+                            hands = if (isMomentMode) MascotMomentMoods.handsFor(selectedMoment) else null,
+                            handsId = momentPlays,
+                            modifier = Modifier.size(240.dp)
+                        )
 
                         // Badge showing current mood / moment & frame animation info
                         Box(
@@ -257,14 +198,11 @@ fun PreviewScreen(
                                 .background(Color(0xFF282830).copy(alpha = 0.85f))
                                 .padding(horizontal = 16.dp, vertical = 6.dp)
                         ) {
-                            val framesCount = resolved.art?.frames ?: 0
-                            val fps = resolved.art?.fps ?: resolved.mood.fps
-                            val label = if (isMomentMode) "Moment: $selectedMoment" else "Mood: $selectedMood"
-                            val modeStr = if (isAnimating) {
-                                if (isLooping) "Looping" else "One-shot"
-                            } else "Paused"
+                            val gesture = MascotMomentMoods.handsFor(selectedMoment)?.let { " + ${it.id}" }.orEmpty()
+                            val label = if (isMomentMode) "Moment: $selectedMoment → $shownMood$gesture" else "Mood: $selectedMood"
+                            val motion = MascotMomentMoods.motionOf(shownMood)
                             Text(
-                                text = "$label • $framesCount frames @ ${fps}fps ($modeStr)",
+                                text = "$label • motion: $motion" + if (isAnimating) "" else " (paused)",
                                 color = Color(0xFFFF5288),
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.SemiBold
@@ -293,6 +231,7 @@ fun PreviewScreen(
                                     label = { Text("Moments (${allMoments.size})", fontSize = 12.sp) }
                                 )
                             }
+
                         }
 
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -303,14 +242,6 @@ fun PreviewScreen(
                                 )
                             ) {
                                 Text(if (isAnimating) "Pause" else "Play", fontSize = 11.sp)
-                            }
-                            Button(
-                                onClick = { isLooping = !isLooping },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (isLooping) Color(0xFF33333D) else Color(0xFF4CAF50)
-                                )
-                            ) {
-                                Text(if (isLooping) "Mode: Loop" else "Mode: One-Shot", fontSize = 11.sp)
                             }
                         }
                     }
@@ -341,7 +272,10 @@ fun PreviewScreen(
                                         selected = selectedMoment == moment,
                                         onClick = {
                                             selectedMoment = moment
+                                            momentPlays++
                                             isAnimating = true
+                                            // the notch companion says it, if the moment has a line
+                                            agent.moment(moment)
                                         },
                                         label = { Text(moment, fontSize = 11.sp) }
                                     )
@@ -456,6 +390,7 @@ fun PreviewScreen(
                             isAnimating = true
                             agent.postWarning(
                                 id = "warn_disk",
+                                label = "Storage",
                                 title = "Low Storage Space",
                                 message = "Less than 1.5 GB remaining on local disk.",
                                 mood = "careful",
@@ -487,17 +422,33 @@ fun PreviewScreen(
                             isMomentMode = false
                             selectedMood = "celebrating"
                             isAnimating = true
-                            agent.postAlert(
-                                id = "alert_booking",
-                                title = "New Shoot Booked!",
-                                message = "Sarah requested Sunset Beach Session.",
-                                mood = "celebrating"
+                            agent.moment(
+                                MascotMoments.OrbitNewBooking,
+                                detail = "Sarah requested a Sunset Beach session.",
+                                actionLabel = "Open",
+                                onAction = { println("Open booking") }
                             )
                         },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
                     ) {
                         Text("Trigger Booking Alert")
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+                    OutlinedButton(
+                        onClick = { agent.moment(MascotMoments.AuthSignedIn, "Welcome back, Nithin!") },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Signed In")
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+                    OutlinedButton(
+                        onClick = { agent.moment(MascotMoments.UploadDone) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Upload Done")
                     }
 
                     Spacer(modifier = Modifier.height(20.dp))
@@ -512,21 +463,24 @@ fun PreviewScreen(
                     ) {
                         Text(if (showCompanionWindow) "Hide Floating HUD" else "Show Floating HUD")
                     }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = onToggleNotchCompanion,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF000000))
+                    ) {
+                        Text(if (showNotchCompanion) "Hide Notch Companion" else "Show Notch Companion")
+                    }
 
                     Spacer(modifier = Modifier.height(24.dp))
                     androidx.compose.material3.HorizontalDivider(color = Color.DarkGray)
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // Pack Stats
-                    Text("Pack Metadata", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
-                    if (pack != null) {
-                        Text("Version: v${pack.version}", fontSize = 11.sp, color = Color.Gray)
-                        Text("Hash: ${pack.hash}", fontSize = 11.sp, color = Color.Gray)
-                        Text("Moods: ${pack.moods.size}", fontSize = 11.sp, color = Color.Gray)
-                        Text("Atlases: ${pack.assets.size}", fontSize = 11.sp, color = Color.Gray)
-                    } else {
-                        Text("No dist pack found (run npm run pack)", fontSize = 11.sp, color = Color.Gray)
-                    }
+                    // Character stats
+                    Text("Character", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+                    Text("Moods: ${allMoods.size}", fontSize = 11.sp, color = Color.Gray)
+                    Text("Moments: ${allMoments.size}", fontSize = 11.sp, color = Color.Gray)
+                    Text("Drawn in code — no art pack", fontSize = 11.sp, color = Color.Gray)
                 }
             }
         }

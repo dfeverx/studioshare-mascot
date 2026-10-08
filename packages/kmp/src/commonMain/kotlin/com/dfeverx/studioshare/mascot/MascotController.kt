@@ -14,8 +14,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import com.dfeverx.studioshare.mascot.director.MascotDirector
 import com.dfeverx.studioshare.mascot.director.MascotPriority
 import com.dfeverx.studioshare.mascot.director.MascotSettings
-import com.dfeverx.studioshare.mascot.pack.MascotPackRepository
-import com.dfeverx.studioshare.mascot.render.AtlasCache
 
 /**
  * Everything the mascot needs, as one app-wide object. The app creates it once (DI) and provides it
@@ -23,10 +21,8 @@ import com.dfeverx.studioshare.mascot.render.AtlasCache
  * below is a no-op, so screens can call them unconditionally.
  */
 class MascotController(
-    val packs: MascotPackRepository,
     val settings: MascotSettings,
     val director: MascotDirector = MascotDirector(),
-    val atlases: AtlasCache = AtlasCache(),
 ) {
     /** Root-coordinate bounds of the places the mascot can walk to, by key. */
     internal val anchors = mutableStateMapOf<String, Rect>()

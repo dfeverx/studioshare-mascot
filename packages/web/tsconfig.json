@@ -11,6 +11,7 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
+    "outDir": "dist",
     "typeRoots": [
       "./node_modules/@types",
       "../../../studioshare-web/node_modules/@types"

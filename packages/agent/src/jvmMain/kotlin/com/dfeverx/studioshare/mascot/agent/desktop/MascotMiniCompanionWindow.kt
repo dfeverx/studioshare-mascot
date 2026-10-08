@@ -40,14 +40,7 @@ import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.rememberWindowState
 import com.dfeverx.studioshare.mascot.agent.MascotAgent
 import com.dfeverx.studioshare.mascot.agent.MascotAgentState
-import com.dfeverx.studioshare.mascot.pack.LoadedPack
-import com.dfeverx.studioshare.mascot.pack.MascotPack
-import com.dfeverx.studioshare.mascot.render.AtlasCache
-import com.dfeverx.studioshare.mascot.render.MascotSprite
-import com.dfeverx.studioshare.mascot.rig.MascotFigure
-import com.dfeverx.studioshare.mascot.rig.RigColors
-import com.dfeverx.studioshare.mascot.rig.RigPose
-import com.dfeverx.studioshare.mascot.rig.drawMascot
+import com.dfeverx.studioshare.mascot.face.StudioFace
 
 /**
  * A floating, always-on-top desktop mini companion (HUD widget).
@@ -59,9 +52,7 @@ fun MascotMiniCompanionWindow(
     agent: MascotAgent,
     visible: Boolean,
     onClose: () -> Unit,
-    onOpenMainApp: () -> Unit,
-    loadedPack: LoadedPack? = null,
-    cache: AtlasCache? = null
+    onOpenMainApp: () -> Unit
 ) {
     if (!visible) return
 
@@ -94,7 +85,7 @@ fun MascotMiniCompanionWindow(
                     .padding(14.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Mascot Character Avatar / Rig
+                // The StudioShare face
                 Box(
                     modifier = Modifier
                         .size(80.dp)
@@ -102,56 +93,12 @@ fun MascotMiniCompanionWindow(
                         .background(Color(0xFF141418)),
                     contentAlignment = Alignment.Center
                 ) {
-                    val moodName = state.currentMood
-                    val resolvedMood = loadedPack?.pack?.resolveMood(moodName)
-                    if (loadedPack != null && cache != null && resolvedMood?.art != null) {
-                        MascotSprite(
-                            resolved = resolvedMood,
-                            loaded = loadedPack,
-                            dark = true,
-                            cache = cache,
-                            loop = true,
-                            animate = true,
-                            modifier = Modifier.size(72.dp)
-                        )
-                    } else {
-                        val fallbackResolved = MascotPack.Resolved(
-                            momentKey = null,
-                            moodName = moodName,
-                            mood = MascotPack.Mood(
-                                face = when (state) {
-                                    is MascotAgentState.Working -> "focused"
-                                    is MascotAgentState.Warning -> "worried"
-                                    is MascotAgentState.Alert -> "happy"
-                                    is MascotAgentState.Idle -> "smile"
-                                },
-                                arms = when (state) {
-                                    is MascotAgentState.Working -> "carry"
-                                    is MascotAgentState.Warning -> "shrug"
-                                    is MascotAgentState.Alert -> "cheer"
-                                    is MascotAgentState.Idle -> "down"
-                                },
-                                prop = when (state) {
-                                    is MascotAgentState.Working -> "box"
-                                    is MascotAgentState.Warning -> "exclaim"
-                                    is MascotAgentState.Alert -> "sparks"
-                                    is MascotAgentState.Idle -> "none"
-                                }
-                            ),
-                            artName = moodName,
-                            art = null,
-                            first = null
-                        )
-                        MascotFigure(
-                            resolved = fallbackResolved,
-                            colors = RigColors.Light,
-                            oneShot = false,
-                            walking = false,
-                            mirrored = false,
-                            animate = true,
-                            modifier = Modifier.size(70.dp)
-                        )
-                    }
+                    StudioFace(
+                        mood = state.currentMood,
+                        progress = (state as? MascotAgentState.Working)?.activeTask
+                            ?.takeUnless { it.isIndeterminate }?.progress,
+                        modifier = Modifier.size(72.dp)
+                    )
                 }
 
                 Spacer(modifier = Modifier.width(12.dp))
