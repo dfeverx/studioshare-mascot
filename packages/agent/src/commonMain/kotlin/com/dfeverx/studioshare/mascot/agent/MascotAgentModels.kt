@@ -50,6 +50,8 @@ data class AgentAlert(
     val quiet: Boolean = false,
     /** A gesture the face makes while it shows (a moment's spec `hands`); null keeps its hands away. */
     val hands: HandGesture? = null,
+    /** Stays until the user dismisses it, rather than for a reading time (an inbox notification). */
+    val persistent: Boolean = false,
 )
 
 /**
@@ -80,6 +82,8 @@ sealed interface MascotAgentState {
     /** A transient milestone or incoming alert being surfaced to the user. */
     data class Alert(
         val alert: AgentAlert,
+        /** Persistent alerts waiting, this one included; 0 for a transient alert. */
+        val pending: Int = if (alert.persistent) 1 else 0,
         override val currentMood: String = alert.mood
     ) : MascotAgentState
 }

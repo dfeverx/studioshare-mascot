@@ -19,8 +19,17 @@ class MascotAgent(
 ) {
     private val _tasks = MutableStateFlow<Map<String, AgentTask>>(emptyMap())
     private val _warnings = MutableStateFlow<Map<String, AgentWarning>>(emptyMap())
+    /** Alerts that stay until dismissed ([moment] with `persistent`), oldest first. */
+    private val _pinned = MutableStateFlow<Map<String, AgentAlert>>(emptyMap())
     private val _state = MutableStateFlow<MascotAgentState>(MascotAgentState.Idle())
     val state: StateFlow<MascotAgentState> = _state.asStateFlow()
+
+    /**
+     * Every task underway, whatever [state] is showing: a notification can be up while an upload
+     * runs, and the notch still shows the upload's status beside it.
+     */
+    val tasks: StateFlow<List<AgentTask>> get() = _taskList.asStateFlow()
+    private val _taskList = MutableStateFlow<List<AgentTask>>(emptyList())
 
     private val notificationListeners = mutableListOf<(AgentAlert) -> Unit>()
     private val warningListeners = mutableListOf<(AgentWarning) -> Unit>()
@@ -44,6 +53,7 @@ class MascotAgent(
         )
         val updated = _tasks.value + (taskId to task)
         _tasks.value = updated
+        _taskList.value = updated.values.toList()
         recomputeState()
     }
 
@@ -58,6 +68,7 @@ class MascotAgent(
     ) {
         val updated = _tasks.value - taskId
         _tasks.value = updated
+        _taskList.value = updated.values.toList()
         if (celebrationTitle != null) {
             postAlert(
                 id = "done_$taskId",
@@ -75,6 +86,7 @@ class MascotAgent(
      */
     fun cancelTask(taskId: String) {
         _tasks.value = _tasks.value - taskId
+        _taskList.value = _tasks.value.values.toList()
         recomputeState()
     }
 
@@ -147,7 +159,10 @@ class MascotAgent(
      * A moment with nothing to say only changes the face for a moment.
      *
      * @param detail a second, smaller line under the message.
-     * @param durationMs how long it shows; by default long enough to read it.
+     * @param durationMs how long it shows; by default long enough to read it. Ignored when [persistent].
+     * @param persistent stays until the user dismisses it (or [dismissAlert] with its [id]), so it is
+     *   never missed — an inbox notification. The notch keeps a mark for it while its card is closed.
+     * @param id the alert's id, to take a persistent one down later; by default a fresh one.
      */
     fun moment(
         key: String,
@@ -157,10 +172,12 @@ class MascotAgent(
         onAction: (() -> Unit)? = null,
         firstAlreadySeen: Boolean = false,
         durationMs: Long? = null,
+        persistent: Boolean = false,
+        id: String? = null,
     ) {
         val text = message ?: MascotMomentMoods.moment(key)?.say
         val alert = AgentAlert(
-            id = "$key@${System.nanoTime()}",
+            id = id ?: "$key@${System.nanoTime()}",
             title = text.orEmpty(),
             message = detail.orEmpty(),
             mood = MascotMomentMoods.moodFor(key, firstAlreadySeen),
@@ -169,14 +186,41 @@ class MascotAgent(
             onAction = onAction,
             quiet = text == null,
             hands = MascotMomentMoods.handsFor(key, firstAlreadySeen),
+            persistent = persistent && text != null,
         )
-        show(alert, durationMs ?: if (alert.quiet) 1_800L else readingTime(alert))
+        if (alert.persistent) pin(alert)
+        else show(alert, durationMs ?: if (alert.quiet) 1_800L else readingTime(alert))
     }
 
-    /** Closes the alert showing now, if it is [id] (an OK button on its card). */
+    private fun pin(alert: AgentAlert) {
+        // a re-sent notification moves to the end, so it is the one showing
+        _pinned.value = _pinned.value - alert.id + (alert.id to alert)
+        notificationListeners.forEach { it(alert) }
+        recomputeState()
+    }
+
+    /**
+     * Closes the alert [id]: the one showing now (an OK button on its card), or a persistent one
+     * wherever it is in the queue (its Dismiss button, or the app saying it has been read).
+     */
     fun dismissAlert(id: String) {
+        if (id in _pinned.value) {
+            _pinned.value = _pinned.value - id
+            val current = _state.value
+            // a transient alert showing over it keeps its time; it falls back to what is left
+            if (current !is MascotAgentState.Alert || current.alert.persistent) recomputeState()
+            return
+        }
         val current = _state.value
         if (current is MascotAgentState.Alert && current.alert.id == id) recomputeState()
+    }
+
+    /** Takes down every persistent alert at once (signing out: they were the last user's). */
+    fun dismissAllAlerts() {
+        if (_pinned.value.isEmpty()) return
+        _pinned.value = emptyMap()
+        val current = _state.value
+        if (current !is MascotAgentState.Alert || current.alert.persistent) recomputeState()
     }
 
     /** Registers a listener for system notifications. */
@@ -190,13 +234,19 @@ class MascotAgent(
     }
 
     private fun recomputeState() {
-        // Priority order: Warnings > Active Tasks > Idle
+        // Priority order: Warnings > Persistent alerts (newest first) > Active Tasks > Idle
         val warningsList = _warnings.value.values.toList()
         if (warningsList.isNotEmpty()) {
             _state.value = MascotAgentState.Warning(
                 activeWarning = warningsList.first(),
                 allWarnings = warningsList
             )
+            return
+        }
+
+        val pinned = _pinned.value.values.toList()
+        if (pinned.isNotEmpty()) {
+            _state.value = MascotAgentState.Alert(pinned.last(), pending = pinned.size)
             return
         }
 

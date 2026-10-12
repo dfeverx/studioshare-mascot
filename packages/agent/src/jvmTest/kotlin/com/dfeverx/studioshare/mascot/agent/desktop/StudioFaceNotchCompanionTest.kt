@@ -92,9 +92,56 @@ class StudioFaceNotchCompanionTest {
         assertEquals(Tone.Warn, warn.detailTone)
         assertIs<NotchCard.Progress>(liveCard(null, upload, opened = false, peeks = true))
         assertIs<NotchCard.Progress>(liveCard(null, upload, opened = true, peeks = false))
-        // a click on a quiet island says so, with a wave
-        val quiet = assertIs<NotchCard.Message>(liveCard(null, MascotAgentState.Idle(), opened = true, peeks = false))
-        assertEquals(HandGesture.Wave, quiet.hands)
+        // a click on a quiet island opens to the face alone, happy, with a wave — nothing to read
+        val hello = assertIs<NotchCard.Hello>(liveCard(null, MascotAgentState.Idle(), opened = true, peeks = false))
+        assertEquals(NotchCard.Hello, hello)
+        assertEquals("happy", hello.mood)
+        assertEquals(HandGesture.Wave, hello.hands)
+    }
+
+    @Test fun inboxNotificationsStayUntilDismissed() {
+        val agent = MascotAgent(CoroutineScope(Dispatchers.Unconfined))
+        agent.moment(MascotMoments.OrbitNewBooking, "New booking", "Priya, Sat 14 Nov", actionLabel = "Open", onAction = {}, persistent = true, id = "n1")
+        agent.moment(MascotMoments.CrewAssigned, "You're on a shoot", persistent = true, id = "n2")
+        val shown = assertIs<MascotAgentState.Alert>(agent.state.value)
+        // the newest first, counting what waits
+        assertEquals("n2", shown.alert.id)
+        assertEquals(2, shown.pending)
+        val card = assertIs<NotchCard.Message>(liveCard(agent, shown, false, false))
+        assertEquals("1 of 2", card.counter)
+        assertEquals(listOf("Dismiss"), card.buttons.map { it.label })
+        assertTrue(waits(shown))
+        // a transient message over them goes, and they come back
+        agent.moment(MascotMoments.StateSaved, "Saved")
+        val saved = assertIs<MascotAgentState.Alert>(agent.state.value)
+        assertEquals("Saved", saved.alert.title)
+        assertEquals(0, saved.pending)
+        agent.dismissAlert(assertIs<MascotAgentState.Alert>(agent.state.value).alert.id)
+        assertEquals("n2", assertIs<MascotAgentState.Alert>(agent.state.value).alert.id)
+        // Dismiss takes one down; the next shows, with Open first-class
+        card.buttons.single { it.label == "Dismiss" }.onClick()
+        val next = assertIs<MascotAgentState.Alert>(agent.state.value)
+        assertEquals("n1", next.alert.id)
+        assertEquals(listOf("Dismiss", "Open"), (liveCard(agent, next, false, false) as NotchCard.Message).buttons.map { it.label })
+        // read in the app: gone from the notch too
+        agent.dismissAlert("n1")
+        assertIs<MascotAgentState.Idle>(agent.state.value)
+    }
+
+    @Test fun liveProcessesKeepTheIslandCompact() {
+        // a task keeps the island compact even while a notification is what the agent shows
+        val pinned = MascotAgentState.Alert(AgentAlert("p", "New booking", "", persistent = true))
+        assertEquals(Look.Compact, lookOf(null, pinned, peeking = false))
+        assertEquals(Look.Compact, lookOf(null, MascotAgentState.Idle(), peeking = false, busy = true))
+    }
+
+    @Test fun theHelloIsJustTheFace() {
+        val size = islandSize(notched, Look.Open, NotchCard.Hello)
+        assertEquals(DpSize(HELLO_W, HELLO_H), size)
+        assertTrue(size.width > notched.notchWidth && stageSize(notched).height >= size.height)
+        val face = facePlace(notched, Look.Open, NotchCard.Hello)
+        assertEquals(HELLO_W / 2, face.x)
+        assertTrue(face.y - face.size / 2 >= notched.bandHeight)
     }
 
     @Test fun cardsOpenTheIslandAndWorkKeepsItCompact() {
@@ -165,10 +212,11 @@ class StudioFaceNotchCompanionTest {
     }
 
     @Test fun islandKeepsTheNotchWidthUntilItOpens() {
-        // hidden: wider than the notch, so it shows; compact: the same width, a row taller; open: 640 wide
+        // hidden: wider than the notch, so it shows; compact: the same; open: 640 wide
         assertEquals(DpSize(185.dp + NOTCH_EAR * 2, 38.dp), islandSize(notched, Look.Hidden, null))
         assertTrue(islandSize(notched, Look.Hidden, null).width > notched.notchWidth)
-        assertEquals(DpSize(185.dp + NOTCH_EAR * 2, 38.dp + COMPACT_DROP), islandSize(notched, Look.Compact, null))
+        // compact never grows under the camera: the mark goes in the right ear
+        assertEquals(DpSize(185.dp + NOTCH_EAR * 2, 38.dp), islandSize(notched, Look.Compact, null))
         assertEquals(islandSize(flat, Look.Hidden, null).width, islandSize(flat, Look.Compact, null).width)
         assertEquals(DpSize(OPEN_W, OPEN_H), islandSize(notched, Look.Open, liveCard(null, booking, false, false)))
         assertEquals(OPEN_PROGRESS_H, islandSize(notched, Look.Open, liveCard(null, upload, true, false)).height)
@@ -183,17 +231,19 @@ class StudioFaceNotchCompanionTest {
         assertTrue(stageSize(notched).height < 200.dp)
     }
 
-    @Test fun faceSitsUnderTheNotchAndMovesIntoTheCard() {
-        val compact = islandSize(notched, Look.Compact, null)
+    @Test fun faceSitsAtTheLeftEndAndMovesIntoTheCard() {
+        // hidden and compact alike: the face in the notch's left ear, clear of the camera
+        for (look in listOf(Look.Hidden, Look.Compact)) {
+            val ear = facePlace(notched, look, null)
+            assertEquals(1f, ear.alpha)
+            assertTrue(ear.x - ear.size / 2 >= 0.dp && ear.x + ear.size / 2 <= NOTCH_EAR, "face must sit beside the camera")
+            assertTrue(ear.y + ear.size / 2 <= notched.bandHeight)
+        }
+        // in a flat tab it shows too, at the left end
+        val tab = facePlace(flat, Look.Hidden, null)
+        assertEquals(1f, tab.alpha)
+        assertTrue(tab.x < islandSize(flat, Look.Hidden, null).width / 2)
         val face = facePlace(notched, Look.Compact, null)
-        assertTrue(face.y - face.size / 2 >= notched.bandHeight, "face must sit under the camera")
-        assertTrue(face.y + face.size / 2 <= compact.height && face.x - face.size / 2 >= 0.dp)
-        assertTrue(face.size <= COMPACT_DROP)
-        // hidden: the face shows in the notch's left ear, clear of the camera; in a flat tab it shows too
-        val ear = facePlace(notched, Look.Hidden, null)
-        assertEquals(1f, ear.alpha)
-        assertTrue(ear.x - ear.size / 2 >= 0.dp && ear.x + ear.size / 2 <= NOTCH_EAR, "face must sit beside the camera")
-        assertEquals(1f, facePlace(flat, Look.Hidden, null).alpha)
         // open: bigger, under the header
         val inCard = facePlace(notched, Look.Open, liveCard(null, booking, false, false))
         assertTrue(inCard.y > notched.bandHeight && inCard.size > face.size)
@@ -217,6 +267,8 @@ class StudioFaceNotchCompanionTest {
             Triple(warning, liveCard(agent, warning, false, false), notched),
             Triple(upload, liveCard(agent, upload, opened = true, peeks = false), flat),
             Triple(MascotAgentState.Idle(), liveCard(agent, MascotAgentState.Idle(), opened = true, peeks = false), notched),
+            Triple(MascotAgentState.Idle(), null, notched),
+            Triple(MascotAgentState.Alert(AgentAlert("p", "New booking!", "Priya booked a portrait session.", label = "Orbit", persistent = true), pending = 2), null, notched),
             Triple(celebrated, liveCard(agent, celebrated, false, false), notched),
         )
         val w = stageSize(notched).width.value.toInt()
@@ -227,7 +279,8 @@ class StudioFaceNotchCompanionTest {
                 islands.forEach { (state, card, geometry) ->
                     Box(Modifier.size(w.dp, rowH.dp), contentAlignment = Alignment.TopCenter) {
                         val look = if (card == null && state is MascotAgentState.Idle) Look.Hidden else lookOf(card, state, peeking = true)
-                        Island(state, card, look, geometry, card?.mood ?: state.currentMood, animate = false, hands = card?.hands)
+                        val mood = card?.mood ?: if (state is MascotAgentState.Idle) "sleepy" else state.currentMood
+                        Island(state, card, look, geometry, mood, animate = false, hands = card?.hands)
                         // the hardware notch, to see what it hides
                         if (geometry.hasNotch) {
                             Box(Modifier.size(geometry.notchWidth, geometry.bandHeight).background(Color(0xFF3A1A1A).copy(alpha = 0.55f)))

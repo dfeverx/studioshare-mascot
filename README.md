@@ -85,6 +85,11 @@ agent.postAlert(
     message = "Wedding Gold session booked for Oct 24",
     mood = "celebrating"
 )
+
+// 4. Something that must not be missed (an inbox notification): stays until dismissed
+agent.moment(MascotMoments.OrbitNewBooking, "New booking", "Priya, Sat 14 Nov",
+    actionLabel = "Open", onAction = { /* … */ }, persistent = true, id = "inbox_42")
+agent.dismissAlert("inbox_42") // read elsewhere: take it down
 ```
 
 ### The face and the notch companion
@@ -97,14 +102,18 @@ StudioFace(mood = "idle", gaze = { gazeToward(dx, dy) })
 
 // Desktop: the face living in the MacBook notch, fed by the agent.
 StudioFaceNotchCompanion(agent = agent, visible = true, onClose = {}, onOpenMainApp = {})
+// …or there the whole time, asleep in the notch while nothing is going on:
+StudioFaceNotchCompanion(agent = agent, visible = true, onClose = {}, onOpenMainApp = {}, alwaysShown = true)
 ```
 
 The notch companion follows [Coucou](https://github.com/Louis-CFM/coucou)'s Mochi.
 
-At rest the island keeps the notch's own width and never grows wider than the camera housing. When
-it shows itself it grows a short row downward under the camera. The face sits on the row's left and
-turns to watch the cursor anywhere on screen. The row's right shows a progress ring while something
-runs, or an amber pulse while something needs the user. There are no words at rest.
+At rest the island is the notch with a short ear either side, and it never grows wider than that or
+down past the menu bar. The camera hides the middle, so everything sits at the ends. The face is
+always at the left end, in the left ear, and turns to watch the cursor anywhere on screen. The right
+ear shows a progress ring while something runs (a camera session, an upload, a cull), an amber pulse
+while a warning needs the user, or a cyan one while a persistent notification waits. There are never
+words at rest; they are in the card a click opens. Idle, the face sleeps.
 
 When something happens the notch opens downward into a card that is wide and short, so it only ever
 covers a strip under the menu bar:
@@ -117,12 +126,17 @@ Dynamic Island's: a soft spring open, a firmer one closed, and content fading in
 blur. Hovering keeps whatever is showing. Only the island as drawn takes clicks, and not even that
 while it rests in the notch: there a hover grows it out, and a click on it then opens it.
 
-So it never sits in the way, the island goes entirely after 10 s with no card up, the mouse away and
-no warning waiting: nothing is drawn and every click passes through. A new alert, warning or task
-brings it back. Progress on a running task and quiet moments don't.
+An open card has a close button (✕) at its top right, over the mute toggle. It closes the card,
+not the island: a warning or a persistent notification stays in compact as its mark
+until dismissed (its card's Dismiss), and a click on the island opens it again.
 
-Clicking the island while nothing is going on opens a one-line "All quiet" card, and the face in it
-waves.
+So it never sits in the way, the island goes entirely after 10 s with no card up, the mouse away and
+nothing running or waiting: nothing is drawn and every click passes through. A new alert, warning or
+task brings it back. Progress on a running task and quiet moments don't. With `alwaysShown` it never
+goes; it rests in the notch with the face asleep.
+
+Clicking the island while nothing is going on opens a small card with just the face, happy and
+waving. No words.
 
 ### Hands
 
