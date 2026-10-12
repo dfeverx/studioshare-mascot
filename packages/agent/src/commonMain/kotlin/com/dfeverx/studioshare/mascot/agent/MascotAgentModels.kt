@@ -12,11 +12,19 @@ data class AgentTask(
     val detail: String = "",
     val progress: Float = 0f, // 0.0 to 1.0 (or negative for indeterminate)
     val mood: String = "uploading",
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = System.currentTimeMillis(),
+    /** What the task is doing at once, one line each under its bar — the folders of an upload. */
+    val parts: List<TaskPart> = emptyList(),
 ) {
     val isIndeterminate: Boolean get() = progress < 0f
     val percentText: String get() = if (isIndeterminate) "..." else "${(progress.coerceIn(0f, 1f) * 100).toInt()}%"
 }
+
+/** One of the things a task is doing at once: what it is (e.g. "Ava & Sam · Ceremony") and its count. */
+data class TaskPart(
+    val label: String,
+    val detail: String = "",
+)
 
 /**
  * A system warning or attention item that requires user awareness.

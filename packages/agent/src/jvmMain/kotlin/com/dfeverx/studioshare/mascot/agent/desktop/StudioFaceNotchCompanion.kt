@@ -80,6 +80,7 @@ import androidx.compose.ui.window.rememberWindowState
 import com.dfeverx.studioshare.mascot.agent.AgentTask
 import com.dfeverx.studioshare.mascot.agent.MascotAgent
 import com.dfeverx.studioshare.mascot.agent.MascotAgentState
+import com.dfeverx.studioshare.mascot.agent.TaskPart
 import com.dfeverx.studioshare.mascot.face.HandGesture
 import com.dfeverx.studioshare.mascot.face.StudioFace
 import com.dfeverx.studioshare.mascot.face.gazeToward
@@ -111,7 +112,22 @@ internal val OPEN_PROGRESS_H = 160.dp
 internal val HELLO_W = 300.dp
 internal val HELLO_H = 140.dp
 private val HELLO_FACE = 64.dp
-private val OPEN_MAX_H = maxOf(OPEN_NOTE_H, OPEN_H, OPEN_ACTION_H, OPEN_PROGRESS_H, HELLO_H)
+/** A task's parts, listed under its bar: this many lines at most (the last says how many more), this tall each. */
+internal const val MAX_PART_LINES = 3
+private val PART_H = 20.dp
+private val PARTS_GAP = 10.dp
+private val OPEN_MAX_H = maxOf(OPEN_NOTE_H, OPEN_H, OPEN_ACTION_H, progressHeight(MAX_PART_LINES), HELLO_H)
+
+/** The progress card's height with [lines] of parts under the bar. */
+private fun progressHeight(lines: Int) = if (lines == 0) OPEN_PROGRESS_H else OPEN_PROGRESS_H + PARTS_GAP + PART_H * lines
+
+/**
+ * The lines a task's parts take: each one while they fit, otherwise the first ones and a last line
+ * counting the rest, so the card never grows past [MAX_PART_LINES].
+ */
+internal fun partLines(parts: List<TaskPart>): List<TaskPart> =
+    if (parts.size <= MAX_PART_LINES) parts
+    else parts.take(MAX_PART_LINES - 1) + TaskPart("+${parts.size - MAX_PART_LINES + 1} more")
 
 /** The open island's column: a header row under the top edge, then the card. */
 private val HEADER_TOP = 8.dp
@@ -172,12 +188,17 @@ private val easeIn = CubicBezierEasing(0.42f, 0f, 1f, 1f)
 
 /** How long an open island waits after the mouse leaves before it folds back to compact. */
 private const val COLLAPSE_AFTER_LEAVE_MS = 15_000L
+/** The hello (a click on a quiet island) has nothing to read: it folds back soon after the mouse leaves. */
+private const val HELLO_AFTER_LEAVE_MS = 2_500L
 /** How long compact stays after the mouse leaves before it hides back into the notch. */
 private const val HIDE_AFTER_LEAVE_MS = 60_000L
-/** With no card up and the mouse away this long, the island goes entirely, until something happens. */
-internal const val SLEEP_AFTER_MS = 10_000L
+/**
+ * With no card up and the mouse away this long, the island goes entirely, until something happens —
+ * as long as a click can still bring the last message back, so it is there to click.
+ */
+internal const val SLEEP_AFTER_MS = MascotAgent.RECALL_MS
 /** A new task opens with its progress this long, then folds back to a ring in compact. */
-private const val TASK_PEEK_MS = 3_500L
+private const val TASK_PEEK_MS = 5_000L
 /** Going up a look (tab → compact → open), the next step waits this long; coming down, the other. */
 private const val STEP_OPEN_MS = 320L
 private const val STEP_CLOSE_MS = 340L
@@ -241,6 +262,8 @@ internal sealed interface NotchCard {
         /** Small and dim after the label, e.g. "1 of 3". */
         val counter: String? = null,
         override val hands: HandGesture? = null,
+        /** A click anywhere on the card: an alert's action (e.g. open the app), so the popup itself is the button. */
+        val onClick: (() -> Unit)? = null,
     ) : NotchCard {
         /** Just a line: no detail, no buttons. */
         val isNote get() = detail == null && buttons.isEmpty()
@@ -293,7 +316,14 @@ internal fun waits(state: MascotAgentState): Boolean =
  * for itself; a task shows its progress while it [peeks] (just started), and when [opened] by a
  * click; a click on a quiet island opens to the face alone, happy, with a wave ([NotchCard.Hello]).
  */
-internal fun liveCard(agent: MascotAgent?, state: MascotAgentState, opened: Boolean, peeks: Boolean): NotchCard? =
+internal fun liveCard(
+    agent: MascotAgent?,
+    state: MascotAgentState,
+    opened: Boolean,
+    peeks: Boolean,
+    /** The task just started, shown in place of the first running one. */
+    peekTask: AgentTask? = null,
+): NotchCard? =
     when (state) {
         is MascotAgentState.Warning -> {
             val w = state.activeWarning
@@ -333,15 +363,18 @@ internal fun liveCard(agent: MascotAgent?, state: MascotAgentState, opened: Bool
                 buttons = when {
                     // kept until dismissed: Dismiss is always there, like a warning's
                     a.persistent -> listOfNotNull(CardButton("Dismiss", primary = false) { agent?.dismissAlert(a.id) }, primary)
-                    primary != null -> listOf(primary, CardButton("OK", primary = false) { agent?.dismissAlert(a.id) })
+                    // it goes by itself: its action alone, no OK
+                    primary != null -> listOf(primary)
                     else -> emptyList()
                 },
                 hands = a.hands,
+                onClick = primary?.onClick,
             )
         }
         is MascotAgentState.Working ->
             if (opened || peeks) {
-                NotchCard.Progress("task:$opened", state.currentMood, state.activeTask, state.queuedTasks.size, expanded = opened)
+                val task = peekTask ?: state.activeTask
+                NotchCard.Progress("task:$opened", task.mood, task, state.queuedTasks.size, expanded = opened)
             } else null
         is MascotAgentState.Idle -> NotchCard.Hello.takeIf { opened }
     }
@@ -386,10 +419,12 @@ internal fun soundFor(from: Look, to: Look, card: NotchCard?): NotchSound? = whe
  * after that. The close button over the mute toggle shuts the card, never the island: a warning or a
  * persistent notification stays as compact's mark until it is dismissed, and a click
  * opens it again. While a task runs (a camera connected, an upload, a cull) compact stays with its
- * status. Idle, the face sleeps in the notch, and a click opens it to just the face, happy.
+ * status, and a click opens it to the task's progress. Idle, the face sleeps in the notch, and a
+ * click opens it to just the face, happy — or, up to 15 s after a message went, to that message
+ * again ([MascotAgent.recall]), to see what just happened.
  *
  * Unless [alwaysShown], with no card up, the mouse away and nothing underway or waiting, it goes
- * entirely after 10 s — nothing drawn, every click passing through — until a new alert, warning or
+ * entirely after 15 s — nothing drawn, every click passing through — until a new alert, warning or
  * task brings it back. [alwaysShown] keeps it in the notch, asleep, the whole time.
  *
  * It reads [MascotAgent.state] and nothing else: [MascotAgent.moment] for what happens in the app
@@ -421,23 +456,28 @@ fun StudioFaceNotchCompanion(
     var love by remember { mutableStateOf(false) }
     var muted by remember { mutableStateOf(!sounds.enabled) }
 
-    // a task that has just started opens with its progress
-    val activeTask = (state as? MascotAgentState.Working)?.activeTask?.id
+    // a task that has just started opens with its progress — any task, not only the first running,
+    // and again on its next run: one that ends is forgotten
+    val taskIds = tasks.map { it.id }
     var peekTask by remember { mutableStateOf<String?>(null) }
     var seenTasks by remember { mutableStateOf(emptySet<String>()) }
-    LaunchedEffect(activeTask) {
-        if (activeTask != null && activeTask !in seenTasks) {
-            seenTasks = seenTasks + activeTask
-            peekTask = activeTask
-            delay(TASK_PEEK_MS)
-            if (peekTask == activeTask) peekTask = null
-        }
+    LaunchedEffect(taskIds) {
+        val started = taskIds.lastOrNull { it !in seenTasks }
+        seenTasks = taskIds.toSet()
+        if (started != null) peekTask = started
+        else if (peekTask?.let { it !in seenTasks } == true) peekTask = null
     }
+    LaunchedEffect(peekTask) {
+        val peek = peekTask ?: return@LaunchedEffect
+        delay(TASK_PEEK_MS)
+        if (peekTask == peek) peekTask = null
+    }
+    val peeked = tasks.firstOrNull { it.id == peekTask }
 
     // the card the user closed (✕): kept shut while it is still the live one, until a click opens it
     var closedKey by remember { mutableStateOf<String?>(null) }
     // what is showing: the live card, or — while the mouse is on it — the last one, so it can be read
-    val live = liveCard(agent, state, opened, peeks = peekTask != null && peekTask == activeTask)
+    val live = liveCard(agent, state, opened, peeks = peeked != null, peekTask = peeked)
         ?.takeUnless { it.key == closedKey }
     var shown by remember { mutableStateOf<NotchCard?>(null) }
     LaunchedEffect(live, inIsland) {
@@ -451,7 +491,7 @@ fun StudioFaceNotchCompanion(
             return@LaunchedEffect
         }
         if (opened) {
-            delay(COLLAPSE_AFTER_LEAVE_MS)
+            delay(if (shown is NotchCard.Hello) HELLO_AFTER_LEAVE_MS else COLLAPSE_AFTER_LEAVE_MS)
             opened = false
         }
         delay(HIDE_AFTER_LEAVE_MS)
@@ -587,8 +627,10 @@ fun StudioFaceNotchCompanion(
                         if (!muted) sounds.play(NotchSound.Tap)
                     },
                     onRestClick = {
-                        opened = true
                         closedKey = null
+                        // idle: what just happened, if a message went by moments ago; otherwise open
+                        // up — with a task running, to its status
+                        if (!(state is MascotAgentState.Idle && agent.recall())) opened = true
                     },
                     // shuts the card, not the island: what it said stays (as compact's mark) until dismissed
                     onClose = {
@@ -800,7 +842,7 @@ private fun endInset(notch: NotchGeometry): Dp = if (notch.hasNotch) NOTCH_EAR /
 internal fun openSize(card: NotchCard?): DpSize = if (card is NotchCard.Hello) DpSize(HELLO_W, HELLO_H) else DpSize(
     OPEN_W,
     when {
-        card is NotchCard.Progress -> OPEN_PROGRESS_H
+        card is NotchCard.Progress -> progressHeight(partLines(card.task.parts).size)
         card is NotchCard.Message && card.buttons.isNotEmpty() -> OPEN_ACTION_H
         card is NotchCard.Message && card.isNote -> OPEN_NOTE_H
         else -> OPEN_H
@@ -959,9 +1001,15 @@ internal fun CardView(card: NotchCard, modifier: Modifier = Modifier) {
     }
     val glowX by animateFloatAsState(target, spring(dampingRatio = 0.9f, stiffness = Spring.StiffnessLow))
     val shape = RoundedCornerShape(CARD_CORNER)
+    val onClick = (card as? NotchCard.Message)?.onClick
+    val sounds = LocalNotchSounds.current
     Box(
         modifier
             .clip(shape)
+            .then(
+                if (onClick == null) Modifier
+                else Modifier.clickable(remember { MutableInteractionSource() }, null) { sounds?.play(NotchSound.Tap); onClick() },
+            )
             .background(CARD)
             .drawBehind {
                 drawRect(
@@ -1094,6 +1142,30 @@ private fun BoxScope.ProgressCard(card: NotchCard.Progress) {
                         )
                     },
             )
+        }
+    }
+    // what it is doing at once — an upload's folders — a line each under the bar
+    val lines = partLines(task.parts)
+    if (lines.isNotEmpty()) {
+        Column(
+            Modifier.align(Alignment.TopStart).offset(y = BAR_Y + BAR_H + PARTS_GAP + 4.dp)
+                .padding(horizontal = BAR_PAD).fillMaxWidth(),
+        ) {
+            lines.forEach { part ->
+                Row(Modifier.height(PART_H), verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        part.label, color = MUTED, fontSize = 12.sp, maxLines = 1,
+                        overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f),
+                    )
+                    if (part.detail.isNotBlank()) {
+                        Spacer(Modifier.width(12.dp))
+                        Text(
+                            part.detail, color = MUTED, fontSize = 12.sp, maxLines = 1,
+                            style = TextStyle(fontFeatureSettings = "tnum"),
+                        )
+                    }
+                }
+            }
         }
     }
 }

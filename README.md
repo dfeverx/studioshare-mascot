@@ -130,13 +130,17 @@ An open card has a close button (✕) at its top right, over the mute toggle. It
 not the island: a warning or a persistent notification stays in compact as its mark
 until dismissed (its card's Dismiss), and a click on the island opens it again.
 
-So it never sits in the way, the island goes entirely after 10 s with no card up, the mouse away and
+A message stays open long enough to read (3–7 s), unless a newer one replaces it. For 15 s after
+it folds, a click on a quiet island opens that message again (`MascotAgent.recall`), so you can
+see what just happened. With a task running, a click opens its progress instead.
+
+So it never sits in the way, the island goes entirely after 15 s with no card up, the mouse away and
 nothing running or waiting: nothing is drawn and every click passes through. A new alert, warning or
 task brings it back. Progress on a running task and quiet moments don't. With `alwaysShown` it never
 goes; it rests in the notch with the face asleep.
 
-Clicking the island while nothing is going on opens a small card with just the face, happy and
-waving. No words.
+Clicking the island while nothing is going on (and no message went by recently) opens a small card
+with just the face, happy and waving. No words. It folds back 2.5 s after the mouse leaves.
 
 ### Hands
 

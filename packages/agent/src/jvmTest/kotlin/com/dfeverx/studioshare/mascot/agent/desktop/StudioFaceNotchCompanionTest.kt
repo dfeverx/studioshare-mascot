@@ -21,6 +21,7 @@ import com.dfeverx.studioshare.mascot.agent.AgentTask
 import com.dfeverx.studioshare.mascot.agent.AgentWarning
 import com.dfeverx.studioshare.mascot.agent.MascotAgent
 import com.dfeverx.studioshare.mascot.agent.MascotAgentState
+import com.dfeverx.studioshare.mascot.agent.TaskPart
 import com.dfeverx.studioshare.mascot.face.HandGesture
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -28,6 +29,7 @@ import org.jetbrains.skia.EncodedImageFormat
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -41,6 +43,12 @@ class StudioFaceNotchCompanionTest {
     private val notched = NotchGeometry(0, 0, 1512, 185.dp, 38.dp)
     private val flat = NotchGeometry(0, 0, 1920, 0.dp, 0.dp)
     private val upload = MascotAgentState.Working(AgentTask("u", "Uploading Wedding — Ava & Sam", "128 of 300 photos", 0.43f))
+    private val parallel = MascotAgentState.Working(
+        AgentTask(
+            "u", "Uploading photos", "32 of 50 photos", 0.64f,
+            parts = listOf(TaskPart("Ava & Sam · Ceremony", "20 of 30"), TaskPart("Priya's portraits · Studio", "12 of 20")),
+        ),
+    )
     private val warning = MascotAgentState.Warning(
         AgentWarning("w", "Storage almost full", "92% of your studio's space is used.", actionLabel = "Manage", onAction = {}, label = "Storage"),
     )
@@ -92,6 +100,10 @@ class StudioFaceNotchCompanionTest {
         assertEquals(Tone.Warn, warn.detailTone)
         assertIs<NotchCard.Progress>(liveCard(null, upload, opened = false, peeks = true))
         assertIs<NotchCard.Progress>(liveCard(null, upload, opened = true, peeks = false))
+        // a task starting behind another (an upload while the camera is connected) peeks itself
+        val camera = MascotAgentState.Working(AgentTask("c", "Camera connected"), queuedTasks = listOf(upload.activeTask))
+        val peek = assertIs<NotchCard.Progress>(liveCard(null, camera, opened = false, peeks = true, peekTask = upload.activeTask))
+        assertEquals(upload.activeTask, peek.task)
         // a click on a quiet island opens to the face alone, happy, with a wave — nothing to read
         val hello = assertIs<NotchCard.Hello>(liveCard(null, MascotAgentState.Idle(), opened = true, peeks = false))
         assertEquals(NotchCard.Hello, hello)
@@ -126,6 +138,71 @@ class StudioFaceNotchCompanionTest {
         // read in the app: gone from the notch too
         agent.dismissAlert("n1")
         assertIs<MascotAgentState.Idle>(agent.state.value)
+    }
+
+    @Test fun parallelPartsListUnderTheBarAndTheCardGrows() {
+        val folders = (1..5).map { TaskPart("Event $it · Folder", "$it of 10") }
+        assertEquals(folders.take(2), partLines(folders.take(2)))
+        assertEquals(folders.take(3), partLines(folders.take(3)))
+        // past the room there is, the last line counts the rest
+        assertEquals(listOf("Event 1 · Folder", "Event 2 · Folder", "+3 more"), partLines(folders).map { it.label })
+
+        fun card(parts: List<TaskPart>) =
+            NotchCard.Progress("task:true", "uploading", AgentTask("u", "Uploading photos", parts = parts), 0, expanded = true)
+        val one = openSize(card(emptyList())).height
+        assertEquals(OPEN_PROGRESS_H, one)
+        assertTrue(openSize(card(folders.take(2))).height > one)
+        assertEquals(openSize(card(folders.take(3))).height, openSize(card(folders)).height)
+    }
+
+    @Test fun aClickBringsTheLastMessageBack() {
+        val agent = MascotAgent(CoroutineScope(Dispatchers.Unconfined))
+        // nothing went by: a click has nothing to bring back (the hello opens instead)
+        assertFalse(agent.recall())
+        agent.moment(MascotMoments.UploadDone, "All photos uploaded!", "Ava & Sam · Ceremony · 20 photos")
+        val first = assertIs<MascotAgentState.Alert>(agent.state.value).alert
+        // it folds (or is closed), and a click shows it again — not a fresh notification
+        var notified = 0
+        agent.onAlert { notified++ }
+        agent.dismissAlert(first.id)
+        assertIs<MascotAgentState.Idle>(agent.state.value)
+        assertTrue(agent.recall())
+        assertEquals(first, assertIs<MascotAgentState.Alert>(agent.state.value).alert)
+        assertEquals(0, notified)
+        // a newer message replaces it
+        agent.moment(MascotMoments.CullStarted, "Culling started")
+        agent.dismissAlert(assertIs<MascotAgentState.Alert>(agent.state.value).alert.id)
+        assertTrue(agent.recall())
+        assertEquals("Culling started", assertIs<MascotAgentState.Alert>(agent.state.value).alert.title)
+    }
+
+    @Test fun aMessageOutlastsATasksProgress() {
+        val agent = MascotAgent(CoroutineScope(Dispatchers.Unconfined))
+        agent.reportProgress("up", "Uploading photos", "Ava & Sam · Ceremony · 3 of 20 photos", 0.15f)
+        agent.moment(MascotMoments.StateSaved, "Saved")
+        // the upload ticks on; the message stays its time
+        agent.reportProgress("up", "Uploading photos", "Ava & Sam · Ceremony · 4 of 20 photos", 0.2f)
+        assertEquals("Saved", assertIs<MascotAgentState.Alert>(agent.state.value).alert.title)
+        // closed, the upload shows again, with where it is
+        agent.dismissAlert(assertIs<MascotAgentState.Alert>(agent.state.value).alert.id)
+        val working = assertIs<MascotAgentState.Working>(agent.state.value)
+        assertEquals("Ava & Sam · Ceremony · 4 of 20 photos", working.activeTask.detail)
+    }
+
+    @Test fun aClickOnAnAlertWithAnActionTakesIt() {
+        val agent = MascotAgent(CoroutineScope(Dispatchers.Unconfined))
+        var opened = 0
+        agent.moment(MascotMoments.UploadDone, "All photos uploaded!", "120 photos", actionLabel = "Open", onAction = { opened++ })
+        val card = assertIs<NotchCard.Message>(liveCard(agent, agent.state.value, false, false))
+        // it goes by itself, so its action is the only button
+        assertEquals(listOf("Open"), card.buttons.map { it.label })
+        // the whole card is the button: a click opens the app and the card goes
+        card.onClick!!()
+        assertEquals(1, opened)
+        assertIs<MascotAgentState.Idle>(agent.state.value)
+        // nothing to do, nothing to click
+        agent.moment(MascotMoments.StateSaved, "Saved")
+        assertNull(assertIs<NotchCard.Message>(liveCard(agent, agent.state.value, false, false)).onClick)
     }
 
     @Test fun liveProcessesKeepTheIslandCompact() {
@@ -227,8 +304,8 @@ class StudioFaceNotchCompanionTest {
         assertTrue(stageSize(notched).height >= asks)
         // without a notch, hidden is a tab as wide as a notch
         assertEquals(185.dp, islandSize(flat, Look.Hidden, null).width)
-        // the whole stage stays a strip under the menu bar
-        assertTrue(stageSize(notched).height < 200.dp)
+        // the whole stage stays a strip under the menu bar, with room for a task listing its parts
+        assertTrue(stageSize(notched).height < 260.dp)
     }
 
     @Test fun faceSitsAtTheLeftEndAndMovesIntoTheCard() {
@@ -270,9 +347,10 @@ class StudioFaceNotchCompanionTest {
             Triple(MascotAgentState.Idle(), null, notched),
             Triple(MascotAgentState.Alert(AgentAlert("p", "New booking!", "Priya booked a portrait session.", label = "Orbit", persistent = true), pending = 2), null, notched),
             Triple(celebrated, liveCard(agent, celebrated, false, false), notched),
+            Triple(parallel, liveCard(agent, parallel, opened = true, peeks = false), notched),
         )
         val w = stageSize(notched).width.value.toInt()
-        val rowH = 184
+        val rowH = 240
         val h = islands.size * (rowH + 8) + 8
         ImageComposeScene(w * 2, h * 2, Density(2f)) {
             Column(Modifier.background(Color(0xFF2B2D33)).padding(top = 8.dp)) {

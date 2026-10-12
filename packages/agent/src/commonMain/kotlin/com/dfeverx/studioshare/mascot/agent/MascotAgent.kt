@@ -36,20 +36,24 @@ class MascotAgent(
 
     /**
      * Reports progress on a background task (e.g., photo uploading, AI face culling, export).
+     *
+     * @param parts what it is doing at once (an upload's folders), listed under the bar when opened.
      */
     fun reportProgress(
         taskId: String,
         title: String,
         detail: String = "",
         progress: Float = 0f,
-        mood: String = "uploading"
+        mood: String = "uploading",
+        parts: List<TaskPart> = emptyList(),
     ) {
         val task = AgentTask(
             id = taskId,
             title = title,
             detail = detail,
             progress = progress,
-            mood = mood
+            mood = mood,
+            parts = parts,
         )
         val updated = _tasks.value + (taskId to task)
         _tasks.value = updated
@@ -126,31 +130,45 @@ class MascotAgent(
 
     /**
      * Posts a transient alert / milestone (e.g. "Booking received!").
-     * Stays active in the agent for [durationMs] then reverts to previous state.
+     * Stays active in the agent for [durationMs] (by default, long enough to read it) then reverts to previous state.
      */
     fun postAlert(
         id: String,
         title: String,
         message: String,
         mood: String = "celebrating",
-        durationMs: Long = 4500L
+        durationMs: Long? = null,
     ) {
-        show(AgentAlert(id = id, title = title, message = message, mood = mood), durationMs)
+        val alert = AgentAlert(id = id, title = title, message = message, mood = mood)
+        show(alert, durationMs ?: readingTime(alert))
     }
 
-    private fun show(alert: AgentAlert, durationMs: Long) {
+    /** The last message shown, and until when a click can bring it back ([recall]). */
+    private var recent: AgentAlert? = null
+    private var recentUntil = 0L
+
+    private fun show(alert: AgentAlert, durationMs: Long, notify: Boolean = true) {
         val id = alert.id
-        if (!alert.quiet) notificationListeners.forEach { it(alert) }
-        _state.value = MascotAgentState.Alert(alert)
+        if (notify && !alert.quiet) notificationListeners.forEach { it(alert) }
+        if (!alert.quiet) {
+            recent = alert
+            recentUntil = System.currentTimeMillis() + durationMs + RECALL_MS
+        }
+        // held for its time over everything, so a task's next progress tick doesn't take it down
+        showing = alert
+        recomputeState()
         scope.launch {
             delay(durationMs)
             // Revert back if no newer alert superseded it
-            val current = _state.value
-            if (current is MascotAgentState.Alert && current.alert.id == id) {
+            if (showing?.id == id) {
+                showing = null
                 recomputeState()
             }
         }
     }
+
+    /** The transient alert up now, until its time is out or it is closed. */
+    private var showing: AgentAlert? = null
 
     /**
      * Something just happened in the app — a [com.dfeverx.studioshare.mascot.MascotMoments] key. The
@@ -211,8 +229,27 @@ class MascotAgent(
             if (current !is MascotAgentState.Alert || current.alert.persistent) recomputeState()
             return
         }
+        if (showing?.id == id) {
+            showing = null
+            recomputeState()
+        }
+    }
+
+    /**
+     * Shows the last message again, if it went less than [RECALL_MS] ago — a click on the notch to
+     * see what just happened ("which upload finished?"). A newer message replaces it. False when
+     * there is none to bring back.
+     */
+    fun recall(): Boolean {
+        val alert = recent ?: return false
+        if (System.currentTimeMillis() > recentUntil) {
+            recent = null
+            return false
+        }
         val current = _state.value
-        if (current is MascotAgentState.Alert && current.alert.id == id) recomputeState()
+        if (current is MascotAgentState.Alert && current.alert.id == alert.id) return true
+        show(alert, readingTime(alert), notify = false)
+        return true
     }
 
     /** Takes down every persistent alert at once (signing out: they were the last user's). */
@@ -234,7 +271,11 @@ class MascotAgent(
     }
 
     private fun recomputeState() {
-        // Priority order: Warnings > Persistent alerts (newest first) > Active Tasks > Idle
+        // Priority order: the transient alert up now > Warnings > Persistent alerts (newest first) > Active Tasks > Idle
+        showing?.let {
+            _state.value = MascotAgentState.Alert(it)
+            return
+        }
         val warningsList = _warnings.value.values.toList()
         if (warningsList.isNotEmpty()) {
             _state.value = MascotAgentState.Warning(
@@ -266,6 +307,9 @@ class MascotAgent(
         /** A comfortable time to read [alert]: 2.5 s plus ~45 ms a character, 3–7 s. */
         internal fun readingTime(alert: AgentAlert): Long =
             (2_500L + 45L * (alert.title.length + alert.message.length)).coerceIn(3_000L, 7_000L)
+
+        /** After a message goes, a click on the notch brings it back for this long ([recall]). */
+        const val RECALL_MS = 15_000L
 
         /** Default global singleton instance for quick access across features. */
         val default: MascotAgent by lazy { MascotAgent() }
