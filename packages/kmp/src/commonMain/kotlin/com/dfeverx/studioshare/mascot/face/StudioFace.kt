@@ -11,6 +11,7 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import kotlin.math.exp
+import kotlinx.coroutines.delay
 
 private const val TWEEN_SECONDS = 0.25f
 
@@ -43,6 +44,8 @@ private class FaceTween {
  *   the eyes drift on their own. The whole face turns toward it; scanning moods keep scanning.
  * @param hands a gesture to make — the face has no hands otherwise. It plays once from when it is
  *   set, and the hands tuck away when it ends; a new [handsId] (e.g. a new cue) plays it again.
+ * @param maxFps draw at most this many frames a second (null: every frame) — for a face resting
+ *   somewhere it is barely seen, where slow breathing looks the same at a fraction of the work.
  */
 @Composable
 fun StudioFace(
@@ -54,12 +57,20 @@ fun StudioFace(
     gaze: (() -> Offset?)? = null,
     hands: HandGesture? = null,
     handsId: Any? = null,
+    maxFps: Int? = null,
 ) {
     var time by remember { mutableFloatStateOf(0.4f) }
+    // the clock's zero, kept across a change of [maxFps] so the face doesn't jump back in time
+    val origin = remember { longArrayOf(-1L) }
     if (animate) {
-        LaunchedEffect(Unit) {
-            val start = withFrameNanos { it }
-            while (true) withFrameNanos { time = 0.4f + (it - start) / 1_000_000_000f }
+        LaunchedEffect(maxFps) {
+            while (true) {
+                if (maxFps != null) delay(1_000L / maxFps.coerceAtLeast(1))
+                withFrameNanos {
+                    if (origin[0] < 0) origin[0] = it - ((time - 0.4f) * 1_000_000_000f).toLong()
+                    time = 0.4f + (it - origin[0]) / 1_000_000_000f
+                }
+            }
         }
     }
     val tween = remember { FaceTween() }

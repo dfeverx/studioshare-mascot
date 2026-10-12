@@ -304,9 +304,15 @@ class MascotAgent(
     }
 
     companion object {
-        /** A comfortable time to read [alert]: 2.5 s plus ~45 ms a character, 3–7 s. */
-        internal fun readingTime(alert: AgentAlert): Long =
-            (2_500L + 45L * (alert.title.length + alert.message.length)).coerceIn(3_000L, 7_000L)
+        /**
+         * How long a message is up: a glance, then it goes back to the notch — 5 s, whatever its
+         * length. Hovering it keeps it, and a click brings it back ([recall]).
+         */
+        @Suppress("UNUSED_PARAMETER")
+        internal fun readingTime(alert: AgentAlert): Long = POPUP_MS
+
+        /** Every popup goes back to the notch after this long, unless the mouse is on it. */
+        const val POPUP_MS = 5_000L
 
         /** After a message goes, a click on the notch brings it back for this long ([recall]). */
         const val RECALL_MS = 15_000L

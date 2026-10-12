@@ -122,15 +122,19 @@ covers a strip under the menu bar:
 - An upload shows its name over a bar the face rides along.
 
 The card is washed with the mood's colour and the face slides in from its row. The motion is the
-Dynamic Island's: a soft spring open, a firmer one closed, and content fading in out of a slight
-blur. Hovering keeps whatever is showing. Only the island as drawn takes clicks, and not even that
+Dynamic Island's: a well-damped spring open (no wobble), a quick ease closed, and the words fading
+in with a short drift up — no zoom, so they stay crisp. Tab → compact → card are quick steps that
+read as one motion. Resting in the notch, the face is drawn at 20 fps, which slow breathing doesn't
+need more than. Hovering keeps whatever is showing. Only the island as drawn takes clicks, and not even that
 while it rests in the notch: there a hover grows it out, and a click on it then opens it.
 
-An open card has a close button (✕) at its top right, over the mute toggle. It closes the card,
-not the island: a warning or a persistent notification stays in compact as its mark
-until dismissed (its card's Dismiss), and a click on the island opens it again.
+An open card has a close button (✕) at its top right, over the mute toggle. It, or a click anywhere
+off the card (read off the mouse button, `GlobalMouse`, since the window lets those clicks through),
+closes the card, not the island: a warning or a persistent notification stays in compact as its
+mark until dismissed (its card's Dismiss), and a click on the island opens it again.
 
-A message stays open long enough to read (3–7 s), unless a newer one replaces it. For 15 s after
+Every popup goes back to the notch after 5 s, or 5 s after the mouse leaves it; hovering keeps it.
+A warning or a kept notification folds to its mark, and a newer message replaces an older one. For 15 s after
 it folds, a click on a quiet island opens that message again (`MascotAgent.recall`), so you can
 see what just happened. With a task running, a click opens its progress instead.
 

@@ -61,7 +61,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.boundsInWindow
@@ -180,14 +179,22 @@ private val FILL_GLOW = Color(0xFF6EE7B7)
 
 // ---- motion ----------------------------------------------------------------------------------
 
-/** Opening: a spring with a little overshoot (SwiftUI's response 0.5 s, damping 0.72). */
-private val openSpring: AnimationSpec<Dp> = spring(dampingRatio = 0.72f, stiffness = 158f)
+/**
+ * Opening: a spring that arrives quickly and settles with only a hint of give — no visible wobble,
+ * which on a 640 dp card reads as heavy (damping 0.86, response ≈ 0.4 s).
+ */
+private val openSpring: AnimationSpec<Dp> = spring(dampingRatio = 0.86f, stiffness = 240f)
 /** Closing: a quick ease that settles without any bounce. */
-private val closeTween: AnimationSpec<Dp> = tween(340, easing = CubicBezierEasing(0.45f, 0f, 0.2f, 1f))
+private val closeTween: AnimationSpec<Dp> = tween(300, easing = CubicBezierEasing(0.45f, 0f, 0.2f, 1f))
 private val easeIn = CubicBezierEasing(0.42f, 0f, 1f, 1f)
+private val easeOut = CubicBezierEasing(0.2f, 0f, 0f, 1f)
+/** A card's words: they fade in drifting up this far, so they settle into place rather than zoom. */
+private val CONTENT_DRIFT = 4.dp
+/** Resting in the notch the face is barely seen: slow breathing, drawn at this rate, looks the same. */
+private const val RESTING_FPS = 20
 
 /** How long an open island waits after the mouse leaves before it folds back to compact. */
-private const val COLLAPSE_AFTER_LEAVE_MS = 15_000L
+private const val COLLAPSE_AFTER_LEAVE_MS = MascotAgent.POPUP_MS
 /** The hello (a click on a quiet island) has nothing to read: it folds back soon after the mouse leaves. */
 private const val HELLO_AFTER_LEAVE_MS = 2_500L
 /** How long compact stays after the mouse leaves before it hides back into the notch. */
@@ -198,10 +205,10 @@ private const val HIDE_AFTER_LEAVE_MS = 60_000L
  */
 internal const val SLEEP_AFTER_MS = MascotAgent.RECALL_MS
 /** A new task opens with its progress this long, then folds back to a ring in compact. */
-private const val TASK_PEEK_MS = 5_000L
+private const val TASK_PEEK_MS = MascotAgent.POPUP_MS
 /** Going up a look (tab → compact → open), the next step waits this long; coming down, the other. */
-private const val STEP_OPEN_MS = 320L
-private const val STEP_CLOSE_MS = 340L
+private const val STEP_OPEN_MS = 140L
+private const val STEP_CLOSE_MS = 140L
 /** Resting the mouse on the face this long makes it blush; then not again for a while. */
 private const val LOVE_AFTER_MS = 1_900L
 private const val LOVE_COOLDOWN_MS = 6_000L
@@ -415,8 +422,10 @@ internal fun soundFor(from: Look, to: Look, card: NotchCard?): NotchSound? = whe
  * mark in the right ear — a progress ring, an amber or a cyan pulse — and no words: the camera hides the
  * middle. Clicking opens it: 640 wide, a header row with the close button, and one card washed with
  * the mood's colour. Alerts and warnings open it on their
- * own, each with its own sound; it folds back to compact 15 s after the mouse leaves, and hides 60 s
- * after that. The close button over the mute toggle shuts the card, never the island: a warning or a
+ * own, each with its own sound. Every card goes back after 5 s ([MascotAgent.POPUP_MS]) — or 5 s
+ * after the mouse leaves it; a warning or a kept notification folds to its mark in compact — and
+ * compact hides 60 s after that. The close button over the mute toggle — or a click anywhere off the card — shuts the
+ * card, never the island: a warning or a
  * persistent notification stays as compact's mark until it is dismissed, and a click
  * opens it again. While a task runs (a camera connected, an upload, a cull) compact stays with its
  * status, and a click opens it to the task's progress. Idle, the face sleeps in the notch, and a
@@ -480,9 +489,25 @@ fun StudioFaceNotchCompanion(
     val live = liveCard(agent, state, opened, peeks = peeked != null, peekTask = peeked)
         ?.takeUnless { it.key == closedKey }
     var shown by remember { mutableStateOf<NotchCard?>(null) }
+    // shuts the card, not the island: what it said stays (as compact's mark) until dismissed
+    val closeCard = {
+        closedKey = shown?.key
+        opened = false
+        peekTask = null
+        shown = null
+    }
     LaunchedEffect(live, inIsland) {
         if (live != null) shown = live
         else if (shown != null && !inIsland) shown = null
+    }
+    // a card that would otherwise stay up — a warning, a kept notification — folds to its mark in
+    // compact after the same 5 s as the rest, unless the mouse is on it; a click opens it again
+    LaunchedEffect(live?.key, inIsland) {
+        val key = live?.key ?: return@LaunchedEffect
+        if (inIsland || !waits(state)) return@LaunchedEffect
+        delay(MascotAgent.POPUP_MS)
+        closedKey = key
+        opened = false
     }
     // hovering peeks; leaving folds an open island back after a while, and hides compact after longer
     LaunchedEffect(inIsland) {
@@ -575,9 +600,12 @@ fun StudioFaceNotchCompanion(
         // there it is hovered (from the mouse's position) but every click passes through.
         LaunchedEffect(Unit) {
             var clickable: Boolean? = null // unknown until the first pass sets it
+            var wasPressed = true
             while (true) {
                 val m = runCatching { MouseInfo.getPointerInfo()?.location }.getOrNull()
                 var take = false
+                // off the island as drawn (unknown without a pointer: then not)
+                var outside = false
                 if (asleep) {
                     // nothing there to hover or click
                     if (inIsland) inIsland = false
@@ -589,12 +617,24 @@ fun StudioFaceNotchCompanion(
                     val slack = 6f
                     val near = x >= left - slack && x <= left + metrics.width + slack && y <= metrics.height + slack
                     if (near != inIsland) inIsland = near
-                    take = drawnLook != Look.Hidden && x >= left && x <= left + metrics.width && y <= metrics.height
+                    outside = !(x >= left && x <= left + metrics.width && y <= metrics.height)
+                    take = drawnLook != Look.Hidden && !outside
                     val over = hypot(x - (left + metrics.faceX), y - metrics.faceY) <= metrics.faceSize / 2 + 4
                     if (over != overFace) overFace = over
                 }
                 // retried next pass if the window isn't there to set yet
                 if (take != clickable && setClickThrough(!take)) clickable = take
+                // a click anywhere off an open card puts it away, as its close button does; the
+                // window passes that click on, so it is read off the button, as it goes down. Only
+                // asked while a card is open; with none, it counts as held, so a button already
+                // down when a card appears has to come up before a press closes it
+                if (shown != null && !asleep) {
+                    val pressed = GlobalMouse.pressed()
+                    if (pressed && !wasPressed && outside) closeCard()
+                    wasPressed = pressed
+                } else {
+                    wasPressed = true
+                }
                 delay(16)
             }
         }
@@ -632,13 +672,7 @@ fun StudioFaceNotchCompanion(
                         // up — with a task running, to its status
                         if (!(state is MascotAgentState.Idle && agent.recall())) opened = true
                     },
-                    // shuts the card, not the island: what it said stays (as compact's mark) until dismissed
-                    onClose = {
-                        closedKey = shown?.key
-                        opened = false
-                        peekTask = null
-                        shown = null
-                    },
+                    onClose = closeCard,
                     onFaceClick = if (shown != null) onOpenMainApp else ({ opened = true }),
                 )
             }
@@ -775,7 +809,7 @@ internal fun Island(
         ) {
             // hands once the face is in a card; in the band, only hands kept on the cheeks fit
             val shownHands = hands.takeIf { look == Look.Open || it == HandGesture.Shy }
-            Face(state, mood, animate, shownHands, handsId, onFaceClick, task)
+            Face(state, mood, animate, shownHands, handsId, onFaceClick, task, resting = look == Look.Hidden)
             // open, the card's label carries the tone; the badge is for compact, where there are no words,
             // and a gesturing face drops it: the hands would land on it
             if (tone != Tone.Calm && look == Look.Compact && shownHands == null) StatusBadge(tone, faceSize)
@@ -802,10 +836,11 @@ private fun <T> BoxScope.Layer(
         when {
             !animate -> t.snapTo(if (visible) 1f else 0f)
             visible -> {
-                delay(160)
-                t.animateTo(1f, spring(dampingRatio = 0.8f, stiffness = 247f))
+                // in as the island is about two-thirds open, so the words are there as it lands
+                delay(90)
+                t.animateTo(1f, tween(240, easing = easeOut))
             }
-            else -> t.animateTo(0f, tween(160, easing = easeIn))
+            else -> t.animateTo(0f, tween(120, easing = easeIn))
         }
     }
     if (t.value < 0.01f) return
@@ -813,10 +848,9 @@ private fun <T> BoxScope.Layer(
         Modifier
             .matchParentSize()
             .graphicsLayer {
+                // a fade and a short drift up, no scaling: text stays crisp while it moves
                 alpha = t.value.coerceIn(0f, 1f)
-                val s = 0.97f + 0.03f * t.value
-                scaleX = s; scaleY = s
-                transformOrigin = TransformOrigin(0.5f, 0f)
+                translationY = (1f - t.value) * CONTENT_DRIFT.toPx()
             },
     ) { content(last) }
 }
@@ -1264,6 +1298,8 @@ private fun Face(
     handsId: Any?,
     onClick: () -> Unit,
     task: AgentTask? = (state as? MascotAgentState.Working)?.activeTask,
+    /** Tucked in the notch: drawn at [RESTING_FPS], not every frame. */
+    resting: Boolean = false,
 ) {
     val progress = task?.takeUnless { it.isIndeterminate }?.progress
     val window = LocalNotchWindow.current
@@ -1276,6 +1312,7 @@ private fun Face(
         animate = animate,
         hands = hands,
         handsId = handsId,
+        maxFps = RESTING_FPS.takeIf { resting },
         // asleep, it doesn't follow the cursor
         gaze = window?.takeIf { mood != "sleepy" }?.let { w -> { cursorGaze(w, centre[0] / density, centre[1] / density) } },
         modifier = Modifier
