@@ -182,7 +182,7 @@ internal object MacNotch {
         class ByValue : NSEdgeInsets(), Structure.ByValue
     }
 
-    /** The same `objc_msgSend`, declared to return an `NSRect` (four doubles, back in d0–d3 on arm64). */
+    /** The same `objc_msgSend`, declared to return an `NSRect` (d0–d3 on arm64; `_stret` on Intel, see [structReturnOptions]). */
     @Suppress("FunctionName")
     private interface ObjCRect : Library {
         fun objc_msgSend(receiver: Pointer?, selector: Pointer): NSRect.ByValue
@@ -208,8 +208,22 @@ internal object MacNotch {
     }
 
     private val objc by lazy { Native.load("objc", ObjC::class.java) }
-    private val rect by lazy { Native.load("objc", ObjCRect::class.java) }
-    private val insets by lazy { Native.load("objc", ObjCInsets::class.java) }
+    private val rect by lazy { Native.load("objc", ObjCRect::class.java, structReturnOptions) }
+    private val insets by lazy { Native.load("objc", ObjCInsets::class.java, structReturnOptions) }
+
+    /**
+     * A 32-byte struct (`NSRect`, `NSEdgeInsets`) comes back in d0–d3 on arm64 through plain
+     * `objc_msgSend`, but on Intel the x86-64 ABI returns it through a hidden pointer, and the
+     * runtime's entry for that is `objc_msgSend_stret` — calling plain `objc_msgSend` there would
+     * treat the return buffer as the receiver and crash the process (no exception to catch). JNA's
+     * libffi already lays the call out for a struct return; it only needs the right symbol.
+     */
+    private val structReturnOptions: Map<String, Any> =
+        if (System.getProperty("os.arch").lowercase() in setOf("x86_64", "amd64")) {
+            mapOf(Library.OPTION_FUNCTION_MAPPER to com.sun.jna.FunctionMapper { _, _ -> "objc_msgSend_stret" })
+        } else {
+            emptyMap()
+        }
     private val dispatch by lazy { Native.load("System", Dispatch::class.java) }
     private val mainQueue by lazy { NativeLibrary.getInstance("System").getGlobalVariableAddress("_dispatch_main_q") }
 
